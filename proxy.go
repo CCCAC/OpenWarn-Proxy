@@ -40,9 +40,9 @@ type infoItem struct {
 	ContactInformation string            `json:"contact"`
 	URL                string            `json:"web"`
 	Area               []areaDescription `json:"area"` // List of affected areas
+	Expires            string            `json:"expires"`
 
 	// TODO: parameter: list of key-value metadata items
-	// TODO: expires  : time stamp of expiry, e.g. "2019-11-30T15:37:00+01:00"
 }
 
 type messagePayload struct {
