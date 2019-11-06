@@ -1,5 +1,13 @@
 package main
 
+// TODO: The big ticket items missing are:
+// - Handle area information, extract lat/lon polygon
+// - Expose websocket, allow clients to request data for particular location
+// - Check existing data for matches
+// - Poll for new data, check matches
+// - Persist data somehow?
+// - Expiry of messages with an expiry attribute
+
 import (
 	"encoding/json"
 	"io/ioutil"
