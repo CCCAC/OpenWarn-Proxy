@@ -51,7 +51,7 @@ type messagePayload struct {
 	Sent       string `json:"sent"`   // Timestamp
 	Status     string `json:"status"` // Is this a current message?
 	MsgType    string `json:"msgType"`
-	Scope      string `json:"scope"`  // e.g. "Public"
+	Scope      string `json:"scope"` // e.g. "Public"
 
 	// `code` is ignored here
 	Info []infoItem `json:"info"`
@@ -59,6 +59,7 @@ type messagePayload struct {
 
 const url1 = "https://warnung.bund.de/bbk.mowas/gefahrendurchsagen.json"
 const url2 = "https://warnung.bund.de/bbk.biwapp/warnmeldungen.json"
+
 // TODO: Handle these as well, need to see them in action
 const url3 = "https://warnung.bund.de/bbk.dwd/unwetter.json"
 const url4 = "https://warnung.bund.de/bbk.lhp/hochwassermeldungen.json"

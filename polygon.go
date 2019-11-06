@@ -1,9 +1,9 @@
 package main
 
 import (
-	"strings"
-	"strconv"
 	"fmt"
+	"strconv"
+	"strings"
 )
 
 // This file contains the code for handling arbitrary lat/lon polygons.
@@ -16,6 +16,7 @@ type InvalidCoordinateError struct {
 	s string
 	v []string
 }
+
 func (e InvalidCoordinateError) Error() string {
 	return fmt.Sprintf("Invalid coordinate string '%s', splits into %#v", e.s, e.v)
 }
