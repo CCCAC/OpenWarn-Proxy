@@ -11,6 +11,9 @@ import (
 type Coordinate struct {
 	Latitude, Longitude float64
 }
+func (c Coordinate) String() string {
+	return fmt.Sprintf("%.3fx%.3f", c.Latitude, c.Longitude)
+}
 
 type InvalidCoordinateError struct {
 	s string
@@ -40,8 +43,15 @@ func NewCoordinateFromString(s string) (Coordinate, error) {
 	return c, nil
 }
 
+type LineSegment struct {
+	p1, p2 Coordinate
+}
+func (l LineSegment) String() string {
+	return fmt.Sprintf("[%s->%s]", l.p1, l.p2)
+}
+
 type Area struct {
-	Coordinates []Coordinate
+	Segments []LineSegment
 }
 
 // NewAreaFromString loads coordinates from the string representation and returns an area. The returned area may not be a single
@@ -56,19 +66,28 @@ func NewAreaFromString(coords string) (Area, error) {
 		return a, nil
 	}
 
-	for _, chunk := range strings.Split(coords, " ") {
-		coord, err := NewCoordinateFromString(strings.TrimSpace(chunk))
+	chunks := strings.Split(coords, " ")
+	if chunks[0] != chunks[len(chunks)-1] {
+		// First and last coordinate of the list need to be equal, otherwise the polygon is not closed
+		return a, fmt.Errorf("polygon not closed")
+	}
+
+	// Construct line segments of the polygon
+	lastCoord := chunks[0]
+
+	for _, chunk := range chunks[1:] {
+		p1, err := NewCoordinateFromString(lastCoord)
 		if err != nil {
 			return a, err
 		}
-
-		a.Coordinates = append(a.Coordinates, coord)
+		p2, err := NewCoordinateFromString(chunk)
+		if err != nil {
+			return a, err
+		}
+		seg := LineSegment{p1: p1, p2: p2}
+		a.Segments = append(a.Segments, seg)
+		lastCoord = chunk
 	}
 
 	return a, nil
-}
-
-// IsDegenerate returns true if the area represented as a is degenerate, that is, it contains non-convex polygons.
-func (a Area) IsDegenerate() bool {
-	return len(a.Coordinates) < 3
 }
