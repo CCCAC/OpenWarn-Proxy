@@ -1,6 +1,6 @@
-// OpenWarn-Proxy gathers civil protection alerts from the german office for civilan protection at https://warnung.bund.de and
-// proxies them to a websocket. Clients can open a websocket connection and provide a location as longitude/latitude. If an alert
-// matching that location shows up (or is already known to the proxy), it is sent to the client.
+// OpenWarn-Proxy gathers civil protection alerts from the german office for civil protection at https://warnung.bund.de and proxies
+// them to a websocket. Clients can open a websocket connection and provide a location as longitude/latitude. If an alert matching
+// that location shows up (or is already known to the proxy), it is sent to the client.
 //
 // Client messages are JSON encoded and look like this:
 //
