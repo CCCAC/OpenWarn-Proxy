@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"math"
 	"strconv"
@@ -71,9 +72,13 @@ func NewAreaFromString(coords string) (Area, error) {
 	}
 
 	chunks := strings.Split(coords, " ")
+	if len(chunks) == 1 {
+		return a, errors.New("malformed polygon")
+	}
 	if chunks[0] != chunks[len(chunks)-1] {
+		// Polygon is not closed. Do that manually.
+		chunks = append(chunks, chunks[0])
 		// First and last coordinate of the list need to be equal, otherwise the polygon is not closed
-		return a, fmt.Errorf("polygon not closed")
 	}
 
 	// Construct line segments of the polygon
@@ -121,6 +126,5 @@ func (a Area) Contains(c Coordinate) bool {
 		}
 	}
 
-	fmt.Println("intersections", intersections)
 	return intersections%2 != 0
 }
