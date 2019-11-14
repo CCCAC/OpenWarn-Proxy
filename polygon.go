@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"math"
 	"strconv"
 	"strings"
 )
@@ -90,4 +91,33 @@ func NewAreaFromString(coords string) (Area, error) {
 	}
 
 	return a, nil
+}
+
+// Contains returns true if c is inside the polygon described by a
+func (a Area) Contains(c Coordinate) bool {
+	// Cast a ray from c to the right. Count crossings with line segments of a. If the number of crossings is even, c is outside
+	// of a.
+
+	intersections := 0
+
+	for _, seg := range a.Segments {
+		// Check if a is to the left of the rightmost part of seg and between the end points
+		// Check latitudes (Y coords)
+		minLat := math.Min(seg.p1.Latitude, seg.p2.Latitude)
+		maxLat := math.Max(seg.p1.Latitude, seg.p2.Latitude)
+
+		if c.Latitude < minLat || c.Latitude > maxLat {
+			// Above or below line segment
+			continue
+		}
+
+		// Now check if c is to the left of the rightmost point
+		maxLong := math.Max(seg.p1.Longitude, seg.p2.Longitude)
+		if c.Longitude <= maxLong {
+			intersections++
+		}
+	}
+
+	fmt.Println("intersections", intersections)
+	return intersections % 2 != 0
 }
