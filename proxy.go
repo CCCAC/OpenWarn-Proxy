@@ -13,14 +13,18 @@ import (
 	"log"
 	"net/http"
 	"time"
+
+	"golang.org/x/net/websocket"
 )
 
-const url1 = "https://warnung.bund.de/bbk.mowas/gefahrendurchsagen.json"
-const url2 = "https://warnung.bund.de/bbk.biwapp/warnmeldungen.json"
-const url3 = "https://warnung.bund.de/bbk.dwd/unwetter.json"
+const (
+	url1 = "https://warnung.bund.de/bbk.mowas/gefahrendurchsagen.json"
+	url2 = "https://warnung.bund.de/bbk.biwapp/warnmeldungen.json"
+	url3 = "https://warnung.bund.de/bbk.dwd/unwetter.json"
 
-// TODO: Handle these as well, need to see them in action
-const url4 = "https://warnung.bund.de/bbk.lhp/hochwassermeldungen.json"
+	// TODO: Handle these as well, need to see them in action
+	url4 = "https://warnung.bund.de/bbk.lhp/hochwassermeldungen.json"
+)
 
 type Proxy struct {
 	// Maps URLs to active messages, keyed by message ID
@@ -31,6 +35,46 @@ func newProxy() Proxy {
 	return Proxy{
 		activeAlerts: make(map[URL]map[MessageID]alertMessage),
 	}
+}
+
+func (p Proxy) socketHandler(conn *websocket.Conn) {
+	// When a user sends a Lat/Lon pair, check active alerts on p
+	// Otherwise, watch the active alerts for new things
+
+	coords := make(chan Coordinate)
+	quit := make(chan interface{})
+
+	// First part, run a goroutine to wait changes on the active alerts
+	go func() {
+		log.Println("Waiting for changes in active alerts or coordinates")
+	loop:
+		for {
+			select {
+			case c := <-coords:
+				log.Println("Received new coordinate:", c)
+			case <-quit:
+				break loop
+			}
+		}
+		log.Println("Active alert watcher quitting")
+	}()
+
+	// Consume from the websocket to gather new lat/lon pairs, exit on first error
+	dec := json.NewDecoder(conn)
+	for dec.More() {
+		var coord Coordinate
+		err := dec.Decode(&coord)
+		if err != nil {
+			log.Println("Error while decoding:", err)
+			break
+		}
+
+		// Update coordinates and re-check active alerts
+		coords <- coord
+	}
+
+	close(quit)
+	conn.Close()
 }
 
 func (p Proxy) updateData(url URL) error {
@@ -101,10 +145,26 @@ func (p Proxy) run() {
 	}
 }
 
+func (p Proxy) socketHandshake(conf *websocket.Config, req *http.Request) error {
+	log.Println("ws handshake. conf:", conf, "req:", req)
+	return nil
+}
+
 func main() {
 	log.Println("Here we go")
 
 	proxy := newProxy()
 
-	proxy.run()
+	go proxy.run()
+
+	srv := websocket.Server{
+		Handshake: proxy.socketHandshake,
+		Handler: websocket.Handler(proxy.socketHandler),
+	}
+	http.Handle("/coords", srv)
+
+	err := http.ListenAndServe(":8080", nil)
+	if err != nil {
+		log.Fatalln("failed to start web socket server:", err)
+	}
 }
