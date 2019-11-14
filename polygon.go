@@ -9,14 +9,6 @@ import (
 
 // This file contains the code for handling arbitrary lat/lon polygons.
 
-type Coordinate struct {
-	Latitude, Longitude float64
-}
-
-func (c Coordinate) String() string {
-	return fmt.Sprintf("%.3fx%.3f", c.Latitude, c.Longitude)
-}
-
 type InvalidCoordinateError struct {
 	s string
 	v []string
@@ -25,6 +17,11 @@ type InvalidCoordinateError struct {
 func (e InvalidCoordinateError) Error() string {
 	return fmt.Sprintf("Invalid coordinate string '%s', splits into %#v", e.s, e.v)
 }
+
+type Coordinate struct {
+	Latitude, Longitude float64
+}
+
 func NewCoordinateFromString(s string) (Coordinate, error) {
 	var c Coordinate
 	v := strings.Split(strings.TrimSpace(s), ",")
@@ -43,6 +40,10 @@ func NewCoordinateFromString(s string) (Coordinate, error) {
 	}
 
 	return c, nil
+}
+
+func (c Coordinate) String() string {
+	return fmt.Sprintf("%.3fx%.3f", c.Latitude, c.Longitude)
 }
 
 type LineSegment struct {
