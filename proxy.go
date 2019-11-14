@@ -35,8 +35,6 @@ func init() {
 	flag.DurationVar(&_updateDelay, "updateDelay", 30 * time.Second, "Intervall between polling for new data")
 	flag.StringVar(&_socketPath, "socketPath", "/coords", "Path to websocket")
 	flag.StringVar(&_socketAddr, "socketAddr", ":8080", "Address to listen on for websocket connections")
-
-	flag.Parse()
 }
 
 type Proxy struct {
@@ -62,13 +60,16 @@ func (p *Proxy) getMatchingAlerts(c Coordinate) []alertMessage {
 	defer p.Unlock()
 
 	var messageIDs []MessageID
+	log.Println("got", len(p.areas), "area collection(s) to check for")
 	for id, areas := range p.areas {
+		log.Println("checking", len(areas), "area(s)")
 		for _, area := range areas {
 			if area.Contains(c) {
 				messageIDs = append(messageIDs, id)
 			}
 		}
 	}
+	log.Println("got", len(messageIDs), "matching message ID(s) for", c)
 
 	// Create empty list. This doesn't use the `nil` pattern for new slices because those encode to `null` values in JSON.
 	matchingAlerts := make([]alertMessage, 0)
@@ -264,6 +265,8 @@ func (p *Proxy) run() {
 }
 
 func main() {
+	flag.Parse()
+
 	log.Println("Here we go")
 
 	proxy := newProxy()

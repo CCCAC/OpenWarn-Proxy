@@ -23,6 +23,11 @@ type Coordinate struct {
 	Latitude, Longitude float64
 }
 
+// NewCoordinateFromString returns a Coordinate extracted from s. s has the following layout:
+//
+//    s := "7.8,50.1" // Longitude, Latitude
+//
+// This layout is somewhat unusual, since usually the latitude comes first.
 func NewCoordinateFromString(s string) (Coordinate, error) {
 	var c Coordinate
 	v := strings.Split(strings.TrimSpace(s), ",")
@@ -31,11 +36,11 @@ func NewCoordinateFromString(s string) (Coordinate, error) {
 	}
 
 	var err error
-	c.Latitude, err = strconv.ParseFloat(v[0], 64)
+	c.Longitude, err = strconv.ParseFloat(v[0], 64)
 	if err != nil {
 		return c, fmt.Errorf("parsing latitude: %w", err)
 	}
-	c.Longitude, err = strconv.ParseFloat(v[1], 64)
+	c.Latitude, err = strconv.ParseFloat(v[1], 64)
 	if err != nil {
 		return c, fmt.Errorf("parsing longitude: %w", err)
 	}
@@ -44,7 +49,7 @@ func NewCoordinateFromString(s string) (Coordinate, error) {
 }
 
 func (c Coordinate) String() string {
-	return fmt.Sprintf("%.3fx%.3f", c.Latitude, c.Longitude)
+	return fmt.Sprintf("[Lat:%.4f, Lon:%.4f]", c.Latitude, c.Longitude)
 }
 
 type LineSegment struct {
@@ -78,7 +83,6 @@ func NewAreaFromString(coords string) (Area, error) {
 	if chunks[0] != chunks[len(chunks)-1] {
 		// Polygon is not closed. Do that manually.
 		chunks = append(chunks, chunks[0])
-		// First and last coordinate of the list need to be equal, otherwise the polygon is not closed
 	}
 
 	// Construct line segments of the polygon
