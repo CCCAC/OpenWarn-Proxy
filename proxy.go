@@ -37,6 +37,36 @@ func newProxy() Proxy {
 	}
 }
 
+// getMatchingAlerts returns all alerts that have areas affecting the provided coordinate
+// This function is really fucking ugly.
+func (p Proxy) getMatchingAlerts(c Coordinate) []alertMessage {
+	var alerts []alertMessage
+
+loop:
+	for _, alert := range p.activeAlerts {
+		for _, msg := range alert {
+			for _, info := range msg.Info {
+				for _, area := range info.Area {
+					for _, poly := range area.Polygon {
+						a, err := NewAreaFromString(poly)
+						if err != nil {
+							log.Println("can't parse polygon", err)
+							continue
+						}
+						if a.Contains(c) {
+							alerts = append(alerts, msg)
+							continue loop
+						}
+					}
+				}
+			}
+		}
+	}
+
+	return alerts
+}
+
+// socketHandler runs a client connection
 func (p Proxy) socketHandler(conn *websocket.Conn) {
 	// When a user sends a Lat/Lon pair, check active alerts on p
 	// Otherwise, watch the active alerts for new things
@@ -46,12 +76,16 @@ func (p Proxy) socketHandler(conn *websocket.Conn) {
 
 	// First part, run a goroutine to wait changes on the active alerts
 	go func() {
+		enc := json.NewEncoder(conn)
+
 		log.Println("Waiting for changes in active alerts or coordinates")
 	loop:
 		for {
 			select {
 			case c := <-coords:
 				log.Println("Received new coordinate:", c)
+				alerts := p.getMatchingAlerts(c)
+				enc.Encode(&alerts)
 			case <-quit:
 				break loop
 			}
@@ -75,6 +109,13 @@ func (p Proxy) socketHandler(conn *websocket.Conn) {
 
 	close(quit)
 	conn.Close()
+}
+
+// socketHandshake is a dumb handshake handler for the websocket. This is required because the websocket library checks the origin
+// by default and rejects requests with an unexpected origin.
+func (p Proxy) socketHandshake(conf *websocket.Config, req *http.Request) error {
+	log.Println("ws handshake. conf:", conf, "req:", req)
+	return nil
 }
 
 func (p Proxy) updateData(url URL) error {
@@ -145,11 +186,6 @@ func (p Proxy) run() {
 	}
 }
 
-func (p Proxy) socketHandshake(conf *websocket.Config, req *http.Request) error {
-	log.Println("ws handshake. conf:", conf, "req:", req)
-	return nil
-}
-
 func main() {
 	log.Println("Here we go")
 
@@ -159,7 +195,7 @@ func main() {
 
 	srv := websocket.Server{
 		Handshake: proxy.socketHandshake,
-		Handler: websocket.Handler(proxy.socketHandler),
+		Handler:   websocket.Handler(proxy.socketHandler),
 	}
 	http.Handle("/coords", srv)
 
