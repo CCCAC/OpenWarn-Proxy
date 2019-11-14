@@ -30,7 +30,7 @@ func TestPolygonInArea(t *testing.T) {
 		t.Error("a should not contain (0, -3), but it does")
 	}
 
-	if !a.Contains(Coordinate{-1,-1}) {
+	if !a.Contains(Coordinate{-1, -1}) {
 		t.Error("a should contain (-1, -1) but it does not")
 	}
 }

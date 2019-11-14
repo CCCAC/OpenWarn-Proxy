@@ -12,6 +12,7 @@ import (
 type Coordinate struct {
 	Latitude, Longitude float64
 }
+
 func (c Coordinate) String() string {
 	return fmt.Sprintf("%.3fx%.3f", c.Latitude, c.Longitude)
 }
@@ -47,6 +48,7 @@ func NewCoordinateFromString(s string) (Coordinate, error) {
 type LineSegment struct {
 	p1, p2 Coordinate
 }
+
 func (l LineSegment) String() string {
 	return fmt.Sprintf("[%s->%s]", l.p1, l.p2)
 }
@@ -119,5 +121,5 @@ func (a Area) Contains(c Coordinate) bool {
 	}
 
 	fmt.Println("intersections", intersections)
-	return intersections % 2 != 0
+	return intersections%2 != 0
 }
