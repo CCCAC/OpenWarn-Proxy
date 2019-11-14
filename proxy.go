@@ -1,9 +1,6 @@
 package main
 
 // TODO: The big ticket items missing are:
-// - Expose websocket, allow clients to request data for particular location
-// - Check existing data for matches
-// - Poll for new data, check matches
 // - Persist data somehow?
 // - Expiry of messages with an expiry attribute
 
@@ -32,12 +29,14 @@ type Proxy struct {
 	// Maps URLs to active messages, keyed by message ID
 	activeAlerts map[URL]map[MessageID]alertMessage
 	updateChans  map[chan bool]bool
+	areas        map[MessageID][]Area
 }
 
 func newProxy() Proxy {
 	return Proxy{
 		activeAlerts: make(map[URL]map[MessageID]alertMessage),
 		updateChans:  make(map[chan bool]bool),
+		areas:        make(map[MessageID][]Area),
 	}
 }
 
@@ -47,31 +46,27 @@ func (p *Proxy) getMatchingAlerts(c Coordinate) []alertMessage {
 	p.Lock()
 	defer p.Unlock()
 
-	// Create empty list. This doesn't use the `nil` pattern for new slices because those encode to `null` values in JSON.
-	alerts := make([]alertMessage, 0)
-
-loop:
-	for _, alert := range p.activeAlerts {
-		for _, msg := range alert {
-			for _, info := range msg.Info {
-				for _, area := range info.Area {
-					for _, poly := range area.Polygon {
-						a, err := NewAreaFromString(poly)
-						if err != nil {
-							log.Println("can't parse polygon", err)
-							continue
-						}
-						if a.Contains(c) {
-							alerts = append(alerts, msg)
-							continue loop
-						}
-					}
-				}
+	var messageIDs []MessageID
+	for id, areas := range p.areas {
+		for _, area := range areas {
+			if area.Contains(c) {
+				messageIDs = append(messageIDs, id)
 			}
 		}
 	}
 
-	return alerts
+	// Create empty list. This doesn't use the `nil` pattern for new slices because those encode to `null` values in JSON.
+	matchingAlerts := make([]alertMessage, 0)
+	for _, id := range messageIDs {
+		// Gather all messages
+		for _, alerts := range p.activeAlerts {
+			if alert, ok := alerts[id]; ok {
+				matchingAlerts = append(matchingAlerts, alert)
+			}
+		}
+	}
+
+	return matchingAlerts
 }
 
 func (p *Proxy) registerUpdateChan(ch chan bool) {
@@ -92,11 +87,11 @@ func (p *Proxy) unregisterUpdateChan(ch chan bool) {
 func (p *Proxy) socketHandler(conn *websocket.Conn) {
 	// When a user sends a Lat/Lon pair, check active alerts on p
 	// Otherwise, watch the active alerts for new things
+	quit := make(chan interface{})
+	done := make(chan interface{})
+	coords := make(chan Coordinate)
 
 	updateChan := make(chan bool)
-	coords := make(chan Coordinate)
-	quit := make(chan interface{})
-
 	p.registerUpdateChan(updateChan)
 	defer p.unregisterUpdateChan(updateChan)
 
@@ -104,11 +99,11 @@ func (p *Proxy) socketHandler(conn *websocket.Conn) {
 	go func() {
 		var currentCoords Coordinate
 		coordsSet := false // True if coordinates have been received
+		running := true
 		enc := json.NewEncoder(conn)
 
 		log.Println("Waiting for changes in active alerts or coordinates")
-	loop:
-		for {
+		for running {
 			select {
 			case c := <-coords:
 				currentCoords = c
@@ -124,10 +119,11 @@ func (p *Proxy) socketHandler(conn *websocket.Conn) {
 					log.Println("not checking update, no coords set")
 				}
 			case <-quit:
-				break loop
+				running = false
 			}
 		}
 		log.Println("Active alert watcher quitting")
+		close(done)
 	}()
 
 	// Consume from the websocket to gather new lat/lon pairs, exit on first error
@@ -144,7 +140,10 @@ func (p *Proxy) socketHandler(conn *websocket.Conn) {
 		coords <- coord
 	}
 
+	// Signal goroutine that it's time to go
 	close(quit)
+	// ... and wait for it to exit
+	<-done
 	conn.Close()
 }
 
@@ -158,9 +157,6 @@ func (p *Proxy) socketHandshake(conf *websocket.Config, req *http.Request) error
 // updateData requests new data from url and updates the stored alert messages. It returns true if an update was performed, and
 // false if no new data arrived
 func (p *Proxy) updateData(url URL) (bool, error) {
-	p.Lock()
-	defer p.Unlock()
-
 	if _, ok := p.activeAlerts[url]; !ok {
 		p.activeAlerts[url] = make(map[MessageID]alertMessage)
 	}
@@ -183,33 +179,50 @@ func (p *Proxy) updateData(url URL) (bool, error) {
 	}
 
 	// Track new alerts
-	newAlerts := make([]alertMessage, 0)
+	newAlerts := 0
 
 	for _, alert := range alerts {
 		// Update messages for this url
 		if _, ok := p.activeAlerts[url][alert.Identifier]; !ok {
 			// This message is new, track it.
-			newAlerts = append(newAlerts, alert)
+			newAlerts++
 		}
 	}
 
 	// Set new active message map
 	p.activeAlerts[url] = make(map[MessageID]alertMessage)
+
 	for _, message := range alerts {
 		p.activeAlerts[url][message.Identifier] = message
+		// Collect all areas for this message
+		var areas []Area
+		for _, info := range message.Info {
+			for _, area := range info.Area {
+				for _, poly := range area.Polygon {
+					a, err := NewAreaFromString(poly)
+					if err != nil {
+						return false, err
+					}
+					areas = append(areas, a)
+				}
+			}
+		}
+		p.areas[message.Identifier] = areas
 	}
 
-	return len(newAlerts) != 0, nil
+	return newAlerts != 0, nil
 }
 
 func (p *Proxy) run() {
 	// Periodically poll all URLs and update proxy state. On update, check subscribed customers for area containment and notify them.
 	urls := []URL{url1, url2, url3, url4}
 
-	ticker := time.NewTicker(1 * time.Minute)
+	ticker := time.NewTicker(30 * time.Second)
 
 	for range ticker.C {
 		needUpdate := false
+		p.Lock()
+		p.areas = make(map[MessageID][]Area)
 		for _, url := range urls {
 			newData, err := p.updateData(url)
 			if err != nil {
@@ -229,6 +242,7 @@ func (p *Proxy) run() {
 				}
 			}
 		}
+		p.Unlock()
 		log.Println("waiting 60 seconds for next update")
 	}
 }
