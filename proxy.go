@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"sync"
 	"time"
+	"flag"
 
 	"golang.org/x/net/websocket"
 )
@@ -23,6 +24,20 @@ const (
 	// TODO: Handle these as well, need to see them in action
 	url4 = "https://warnung.bund.de/bbk.lhp/hochwassermeldungen.json"
 )
+
+var (
+	_updateDelay time.Duration
+	_socketPath string
+	_socketAddr string
+)
+
+func init() {
+	flag.DurationVar(&_updateDelay, "updateDelay", 30 * time.Second, "Intervall between polling for new data")
+	flag.StringVar(&_socketPath, "socketPath", "/coords", "Path to websocket")
+	flag.StringVar(&_socketAddr, "socketAddr", ":8080", "Address to listen on for websocket connections")
+
+	flag.Parse()
+}
 
 type Proxy struct {
 	sync.Mutex
@@ -217,9 +232,9 @@ func (p *Proxy) run() {
 	// Periodically poll all URLs and update proxy state. On update, check subscribed customers for area containment and notify them.
 	urls := []URL{url1, url2, url3, url4}
 
-	ticker := time.NewTicker(30 * time.Second)
+	ticker := time.NewTicker(_updateDelay)
 
-	for range ticker.C {
+	for {
 		needUpdate := false
 		p.Lock()
 		p.areas = make(map[MessageID][]Area)
@@ -243,7 +258,8 @@ func (p *Proxy) run() {
 			}
 		}
 		p.Unlock()
-		log.Println("waiting 60 seconds for next update")
+		log.Println("waiting", _updateDelay, "for next update")
+		<-ticker.C
 	}
 }
 
@@ -258,9 +274,9 @@ func main() {
 		Handshake: proxy.socketHandshake,
 		Handler:   websocket.Handler(proxy.socketHandler),
 	}
-	http.Handle("/coords", srv)
+	http.Handle(_socketPath, srv)
 
-	err := http.ListenAndServe(":8080", nil)
+	err := http.ListenAndServe(_socketAddr, nil)
 	if err != nil {
 		log.Fatalln("failed to start web socket server:", err)
 	}
