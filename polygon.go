@@ -124,10 +124,20 @@ func (a Area) Contains(c Coordinate) bool {
 		//            \
 		//           seg.p2
 		//
-		// That is, c lies to the left of the rightmost point and to the right of the line between both segment parts.
+		// That is, c lies to the left of the rightmost point and to the right of the line between both segment parts. The same
+		// also applied if the diagonal goes into the other direction:
+		//
+		//          seg.p1
+		//          /
+		//         /
+		//        /
+		//       /  X <- c
+		//      /
+		//     /
+		// seg.p2
 		//
 		// This code may detect a collision between a ray cast from X (at position c) to the right and the line segment, because it
-		// does not correctly check on which side of the line it lies.
+		// does not correctly check on which side of the line X lies.
 		//
 		// Check if a is to the left of the rightmost part of seg and between the end points
 		// Check latitudes (Y coords)
