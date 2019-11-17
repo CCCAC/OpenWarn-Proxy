@@ -33,6 +33,7 @@ var (
 	_socketPath  string
 	_socketAddr  string
 	_logLevel    string
+	_logCallers  bool
 )
 
 func init() {
@@ -40,6 +41,7 @@ func init() {
 	flag.StringVar(&_socketPath, "socketPath", "/coords", "Path to websocket")
 	flag.StringVar(&_socketAddr, "socketAddr", ":8080", "Address to listen on for websocket connections")
 	flag.StringVar(&_logLevel, "logLevel", "debug", "Log level to use")
+	flag.BoolVar(&_logCallers, "logCallers", false, "Whether to log callers")
 }
 
 type Proxy struct {
@@ -65,21 +67,24 @@ func (cl *Client) getMatchingAlerts(c Coordinate) []alertMessage {
 	p.Lock()
 	defer p.Unlock()
 
-	var messageIDs []MessageID
+	messageIDs := make(map[MessageID]bool)
 	cl.Log().Debug("got", len(p.areas), "area collection(s) to check for")
 	for id, areas := range p.areas {
 		cl.Log().Println("checking", len(areas), "area(s)")
 		for _, area := range areas {
 			if area.Contains(c) {
-				messageIDs = append(messageIDs, id)
+				messageIDs[id] = true
 			}
 		}
 	}
-	cl.Log().Debug("got", len(messageIDs), "matching message ID(s) for", c)
+	cl.Log().WithFields(logrus.Fields{
+		"count": len(messageIDs),
+		"ids": messageIDs,
+	}).Debug("got matching message IDs")
 
 	// Create empty list. This doesn't use the `nil` pattern for new slices because those encode to `null` values in JSON.
 	matchingAlerts := make([]alertMessage, 0)
-	for _, id := range messageIDs {
+	for id := range messageIDs {
 		// Gather all messages
 		for _, alerts := range p.activeAlerts {
 			if alert, ok := alerts[id]; ok {
@@ -333,9 +338,7 @@ func main() {
 	if err != nil {
 		logrus.Fatalln("Can't parse log level:", err)
 	}
-	if lvl == logrus.DebugLevel {
-		logrus.SetReportCaller(true)
-	}
+	logrus.SetReportCaller(_logCallers)
 	logrus.SetLevel(lvl)
 
 	logrus.Info("Starting up")
