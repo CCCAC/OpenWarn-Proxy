@@ -6,13 +6,16 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"flag"
+	"io"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"sync"
+	"sync/atomic"
 	"time"
 
+	"github.com/sirupsen/logrus"
 	"nhooyr.io/websocket"
 )
 
@@ -29,12 +32,14 @@ var (
 	_updateDelay time.Duration
 	_socketPath  string
 	_socketAddr  string
+	_logLevel    string
 )
 
 func init() {
 	flag.DurationVar(&_updateDelay, "updateDelay", 30*time.Second, "Intervall between polling for new data")
 	flag.StringVar(&_socketPath, "socketPath", "/coords", "Path to websocket")
 	flag.StringVar(&_socketAddr, "socketAddr", ":8080", "Address to listen on for websocket connections")
+	flag.StringVar(&_logLevel, "logLevel", "debug", "Log level to use")
 }
 
 type Proxy struct {
@@ -55,21 +60,22 @@ func newProxy() Proxy {
 
 // getMatchingAlerts returns all alerts that have areas affecting the provided coordinate
 // This function is really fucking ugly.
-func (p *Proxy) getMatchingAlerts(c Coordinate) []alertMessage {
+func (cl *Client) getMatchingAlerts(c Coordinate) []alertMessage {
+	p := cl.p
 	p.Lock()
 	defer p.Unlock()
 
 	var messageIDs []MessageID
-	log.Println("got", len(p.areas), "area collection(s) to check for")
+	cl.Log().Debug("got", len(p.areas), "area collection(s) to check for")
 	for id, areas := range p.areas {
-		log.Println("checking", len(areas), "area(s)")
+		cl.Log().Println("checking", len(areas), "area(s)")
 		for _, area := range areas {
 			if area.Contains(c) {
 				messageIDs = append(messageIDs, id)
 			}
 		}
 	}
-	log.Println("got", len(messageIDs), "matching message ID(s) for", c)
+	cl.Log().Debug("got", len(messageIDs), "matching message ID(s) for", c)
 
 	// Create empty list. This doesn't use the `nil` pattern for new slices because those encode to `null` values in JSON.
 	matchingAlerts := make([]alertMessage, 0)
@@ -99,11 +105,32 @@ func (p *Proxy) unregisterUpdateChan(ch chan bool) {
 	delete(p.updateChans, ch)
 }
 
+type Client struct {
+	p   *Proxy
+	log atomic.Value
+}
+
+func (c *Client) Log() *logrus.Entry {
+	return c.log.Load().(*logrus.Entry)
+}
+
+func (c *Client) SetLog(l *logrus.Entry) {
+	c.log.Store(l)
+}
+
 // socketHandler runs a client connection
 func (p *Proxy) socketHandler(w http.ResponseWriter, r *http.Request) {
+	client := Client{
+		p: p,
+	}
+	client.SetLog(logrus.WithFields(logrus.Fields{
+		"component": "client",
+		"remote":    r.RemoteAddr,
+	}))
+
 	conn, err := websocket.Accept(w, r, &websocket.AcceptOptions{InsecureSkipVerify: true})
 	if err != nil {
-		log.Println("Failed to set up websocket:", err)
+		client.Log().Error("Failed to set up websocket:", err)
 		return
 	}
 	defer conn.Close(websocket.StatusInternalError, "internal server error")
@@ -124,11 +151,11 @@ func (p *Proxy) socketHandler(w http.ResponseWriter, r *http.Request) {
 		coordsSet := false // True if coordinates have been received
 		running := true
 
-		log.Println("Waiting for changes in active alerts or coordinates")
+		client.Log().Info("Waiting for changes in active alerts or coordinates")
 		for running {
 			writer, err := conn.Writer(r.Context(), websocket.MessageText)
 			if err != nil {
-				log.Println("can't set up writer:", err)
+				client.Log().Error("can't set up writer:", err)
 				return
 			}
 			enc := json.NewEncoder(writer)
@@ -137,22 +164,23 @@ func (p *Proxy) socketHandler(w http.ResponseWriter, r *http.Request) {
 			case c := <-coords:
 				currentCoords = c
 				coordsSet = true
-				log.Println("Received new coordinate:", c)
-				alerts := p.getMatchingAlerts(c)
+				client.SetLog(client.Log().WithField("coordinate", c))
+				client.Log().Info("Received new coordinate")
+				alerts := client.getMatchingAlerts(c)
 				enc.Encode(&alerts)
 			case <-updateChan:
 				if coordsSet {
-					alerts := p.getMatchingAlerts(currentCoords)
+					alerts := client.getMatchingAlerts(currentCoords)
 					enc.Encode(&alerts)
 				} else {
-					log.Println("not checking update, no coords set")
+					client.Log().Info("not checking update, no coords set")
 				}
 			case <-quit:
 				running = false
 			}
 			writer.Close()
 		}
-		log.Println("Active alert watcher quitting")
+		client.Log().Info("Active alert watcher quitting")
 		close(done)
 	}()
 
@@ -160,7 +188,7 @@ func (p *Proxy) socketHandler(w http.ResponseWriter, r *http.Request) {
 	for {
 		mt, reader, err := conn.Reader(r.Context())
 		if err != nil {
-			log.Println("Failed to read from websocket:", err)
+			client.Log().Error("Failed to read from websocket:", err)
 			break
 		}
 		if mt != websocket.MessageText {
@@ -169,7 +197,7 @@ func (p *Proxy) socketHandler(w http.ResponseWriter, r *http.Request) {
 				buf := make([]byte, 32)
 				_, err := reader.Read(buf)
 				if err != nil {
-					log.Println("Failed to read from websocket:", err)
+					client.Log().Error("Failed to read from websocket:", err)
 					break
 				}
 			}
@@ -181,7 +209,9 @@ func (p *Proxy) socketHandler(w http.ResponseWriter, r *http.Request) {
 			var coord Coordinate
 			err = dec.Decode(&coord)
 			if err != nil {
-				log.Println("Error while decoding:", err)
+				if errors.Is(err, io.EOF) {
+					client.Log().Error("Error while decoding:", err)
+				}
 				break
 			}
 
@@ -261,6 +291,8 @@ func (p *Proxy) updateData(url URL) (bool, error) {
 // updateLoop polls all URLs and updates the proxy state. On update, it checks subscribed customers for area containment and notify
 // them.
 func (p *Proxy) updateLoop() {
+	log := logrus.WithField("component", "updater")
+
 	urls := []URL{url1, url2, url3, url4}
 
 	ticker := time.NewTicker(_updateDelay)
@@ -272,14 +304,14 @@ func (p *Proxy) updateLoop() {
 		for _, url := range urls {
 			newData, err := p.updateData(url)
 			if err != nil {
-				log.Println("updating", url, "failed:", err)
+				log.Error("updating", url, "failed:", err)
 				continue
 			}
-			log.Println(url, "refreshed")
+			log.Debug(url, "refreshed")
 			needUpdate = needUpdate || newData
 		}
 		if needUpdate {
-			log.Println("Notifying connected clients of updates")
+			log.Info("Notifying connected clients of updates")
 			// Non-blocking notify to make sure slow clients don't block us
 			for ch := range p.updateChans {
 				select {
@@ -289,7 +321,7 @@ func (p *Proxy) updateLoop() {
 			}
 		}
 		p.Unlock()
-		log.Println("waiting", _updateDelay, "for next update")
+		log.Debug("waiting", _updateDelay, "for next update")
 		<-ticker.C
 	}
 }
@@ -297,7 +329,16 @@ func (p *Proxy) updateLoop() {
 func main() {
 	flag.Parse()
 
-	log.Println("Here we go")
+	lvl, err := logrus.ParseLevel(_logLevel)
+	if err != nil {
+		logrus.Fatalln("Can't parse log level:", err)
+	}
+	if lvl == logrus.DebugLevel {
+		logrus.SetReportCaller(true)
+	}
+	logrus.SetLevel(lvl)
+
+	logrus.Info("Starting up")
 
 	proxy := newProxy()
 
@@ -305,8 +346,10 @@ func main() {
 
 	http.HandleFunc(_socketPath, proxy.socketHandler)
 
-	err := http.ListenAndServe(_socketAddr, nil)
+	logrus.Info("Handlers configured, app started")
+
+	err = http.ListenAndServe(_socketAddr, nil)
 	if err != nil {
-		log.Fatalln("failed to start web socket server:", err)
+		logrus.Fatalln("failed to start web socket server:", err)
 	}
 }
