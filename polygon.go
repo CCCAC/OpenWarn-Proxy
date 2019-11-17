@@ -3,7 +3,6 @@ package main
 import (
 	"errors"
 	"fmt"
-	"log"
 	"math"
 	"strconv"
 	"strings"
@@ -153,8 +152,6 @@ func (a Area) Contains(c Coordinate) bool {
 
 		// Longitude of collision point is: Long = (Lat_c)/d
 		lonColl := c.Latitude / slope
-
-		log.Printf("c: %s leftP: %s rightP: %s slope: %f lonColl: %f", c, leftP, rightP, slope, lonColl)
 
 		if lonColl <= c.Longitude {
 			intersections++
