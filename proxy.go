@@ -49,6 +49,19 @@ func init() {
 	})
 }
 
+// Client wraps a proxy reference and a logger for convenient access in the client's main loop
+type Client struct {
+	p   *Proxy
+	log atomic.Value
+}
+
+func (c *Client) Log() *logrus.Entry {
+	return c.log.Load().(*logrus.Entry)
+}
+
+func (c *Client) SetLog(l *logrus.Entry) {
+	c.log.Store(l)
+}
 type Proxy struct {
 	sync.Mutex
 	// Maps URLs to active messages, keyed by message ID
@@ -113,19 +126,6 @@ func (p *Proxy) unregisterUpdateChan(ch chan bool) {
 	defer p.Unlock()
 
 	delete(p.updateChans, ch)
-}
-
-type Client struct {
-	p   *Proxy
-	log atomic.Value
-}
-
-func (c *Client) Log() *logrus.Entry {
-	return c.log.Load().(*logrus.Entry)
-}
-
-func (c *Client) SetLog(l *logrus.Entry) {
-	c.log.Store(l)
 }
 
 // socketHandler runs a client connection
