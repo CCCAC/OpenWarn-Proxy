@@ -84,7 +84,7 @@ func (cl *Client) getMatchingAlerts(c Coordinate) []alertMessage {
 	}
 	cl.Log().WithFields(logrus.Fields{
 		"count": len(messageIDs),
-		"ids": messageIDs,
+		"ids":   messageIDs,
 	}).Debug("got matching message IDs")
 
 	// Create empty list. This doesn't use the `nil` pattern for new slices because those encode to `null` values in JSON.
