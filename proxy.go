@@ -40,8 +40,13 @@ func init() {
 	flag.DurationVar(&_updateDelay, "updateDelay", 30*time.Second, "Intervall between polling for new data")
 	flag.StringVar(&_socketPath, "socketPath", "/coords", "Path to websocket")
 	flag.StringVar(&_socketAddr, "socketAddr", ":8080", "Address to listen on for websocket connections")
-	flag.StringVar(&_logLevel, "logLevel", "debug", "Log level to use")
+	flag.StringVar(&_logLevel, "logLevel", "info", "Log level to use")
 	flag.BoolVar(&_logCallers, "logCallers", false, "Whether to log callers")
+
+	logrus.SetFormatter(&logrus.TextFormatter{
+		DisableColors: true,
+		FullTimestamp: true,
+	})
 }
 
 type Proxy struct {
@@ -68,9 +73,9 @@ func (cl *Client) getMatchingAlerts(c Coordinate) []alertMessage {
 	defer p.Unlock()
 
 	messageIDs := make(map[MessageID]bool)
-	cl.Log().Debug("got", len(p.areas), "area collection(s) to check for")
+	cl.Log().WithField("numareas", len(p.areas)).Debug("checking area collections")
 	for id, areas := range p.areas {
-		cl.Log().Println("checking", len(areas), "area(s)")
+		cl.Log().WithField("numareas", len(areas)).Println("checking area(s)")
 		for _, area := range areas {
 			if area.Contains(c) {
 				messageIDs[id] = true
@@ -309,10 +314,12 @@ func (p *Proxy) updateLoop() {
 		for _, url := range urls {
 			newData, err := p.updateData(url)
 			if err != nil {
-				log.Error("updating", url, "failed:", err)
+				log.WithFields(logrus.Fields{
+					"url": url,
+					"err": err}).Error("update failed")
 				continue
 			}
-			log.Debug(url, "refreshed")
+			log.WithField("url", url).Debug("data refreshed")
 			needUpdate = needUpdate || newData
 		}
 		if needUpdate {
@@ -326,7 +333,7 @@ func (p *Proxy) updateLoop() {
 			}
 		}
 		p.Unlock()
-		log.Debug("waiting", _updateDelay, "for next update")
+		log.WithField("delay", _updateDelay).Debug("waiting for next update")
 		<-ticker.C
 	}
 }
