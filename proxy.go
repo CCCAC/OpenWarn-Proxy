@@ -62,21 +62,6 @@ func (c *Client) Log() *logrus.Entry {
 func (c *Client) SetLog(l *logrus.Entry) {
 	c.log.Store(l)
 }
-type Proxy struct {
-	sync.Mutex
-	// Maps URLs to active messages, keyed by message ID
-	activeAlerts map[URL]map[MessageID]alertMessage
-	updateChans  map[chan bool]bool
-	areas        map[MessageID][]Area
-}
-
-func newProxy() Proxy {
-	return Proxy{
-		activeAlerts: make(map[URL]map[MessageID]alertMessage),
-		updateChans:  make(map[chan bool]bool),
-		areas:        make(map[MessageID][]Area),
-	}
-}
 
 // getMatchingAlerts returns all alerts that have areas affecting the provided coordinate
 // This function is really fucking ugly.
@@ -112,6 +97,22 @@ func (cl *Client) getMatchingAlerts(c Coordinate) []alertMessage {
 	}
 
 	return matchingAlerts
+}
+
+type Proxy struct {
+	sync.Mutex
+	// Maps URLs to active messages, keyed by message ID
+	activeAlerts map[URL]map[MessageID]alertMessage
+	updateChans  map[chan bool]bool
+	areas        map[MessageID][]Area
+}
+
+func newProxy() Proxy {
+	return Proxy{
+		activeAlerts: make(map[URL]map[MessageID]alertMessage),
+		updateChans:  make(map[chan bool]bool),
+		areas:        make(map[MessageID][]Area),
+	}
 }
 
 func (p *Proxy) registerUpdateChan(ch chan bool) {
@@ -202,7 +203,8 @@ func (p *Proxy) socketHandler(w http.ResponseWriter, r *http.Request) {
 			break
 		}
 		if mt != websocket.MessageText {
-			// Consume all message and them
+			// Consume all non-text message and drop them
+			client.Log().Debug("Non-text message received")
 			for {
 				buf := make([]byte, 32)
 				_, err := reader.Read(buf)
@@ -210,6 +212,7 @@ func (p *Proxy) socketHandler(w http.ResponseWriter, r *http.Request) {
 					client.Log().Error("Failed to read from websocket:", err)
 					break
 				}
+				client.Log().WithField("part", buf).Debug("message part consumed")
 			}
 			continue
 		}
