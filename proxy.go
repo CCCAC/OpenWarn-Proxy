@@ -6,12 +6,12 @@ package main
 
 import (
 	"encoding/json"
+	"flag"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"sync"
 	"time"
-	"flag"
 
 	"golang.org/x/net/websocket"
 )
@@ -27,12 +27,12 @@ const (
 
 var (
 	_updateDelay time.Duration
-	_socketPath string
-	_socketAddr string
+	_socketPath  string
+	_socketAddr  string
 )
 
 func init() {
-	flag.DurationVar(&_updateDelay, "updateDelay", 30 * time.Second, "Intervall between polling for new data")
+	flag.DurationVar(&_updateDelay, "updateDelay", 30*time.Second, "Intervall between polling for new data")
 	flag.StringVar(&_socketPath, "socketPath", "/coords", "Path to websocket")
 	flag.StringVar(&_socketAddr, "socketAddr", ":8080", "Address to listen on for websocket connections")
 }

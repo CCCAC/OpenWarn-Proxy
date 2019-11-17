@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"fmt"
+	"log"
 	"math"
 	"strconv"
 	"strings"
@@ -49,7 +50,7 @@ func NewCoordinateFromString(s string) (Coordinate, error) {
 }
 
 func (c Coordinate) String() string {
-	return fmt.Sprintf("[Lat:%.4f, Lon:%.4f]", c.Latitude, c.Longitude)
+	return fmt.Sprintf("[Lat:% 3.3f, Lon:% 3.3f]", c.Latitude, c.Longitude)
 }
 
 type LineSegment struct {
@@ -113,32 +114,6 @@ func (a Area) Contains(c Coordinate) bool {
 	intersections := 0
 
 	for _, seg := range a.Segments {
-		// TODO: This logic may be wrong in the following scenario:
-		//
-		//  seg.p1
-		//       \
-		//        \  X <- c
-		//         \
-		//          \
-		//           \
-		//            \
-		//           seg.p2
-		//
-		// That is, c lies to the left of the rightmost point and to the right of the line between both segment parts. The same
-		// also applied if the diagonal goes into the other direction:
-		//
-		//          seg.p1
-		//          /
-		//         /
-		//        /
-		//       /  X <- c
-		//      /
-		//     /
-		// seg.p2
-		//
-		// This code may detect a collision between a ray cast from X (at position c) to the right and the line segment, because it
-		// does not correctly check on which side of the line X lies.
-		//
 		// Check if a is to the left of the rightmost part of seg and between the end points
 		// Check latitudes (Y coords)
 		minLat := math.Min(seg.p1.Latitude, seg.p2.Latitude)
@@ -149,9 +124,39 @@ func (a Area) Contains(c Coordinate) bool {
 			continue
 		}
 
-		// Now check if c is to the left of the rightmost point
-		maxLong := math.Max(seg.p1.Longitude, seg.p2.Longitude)
-		if c.Longitude <= maxLong {
+		// Calculate x coordinate of the intersection of a line through seg.p1 and sec.p2 (l1) and a line to the right through c (l2)
+		if seg.p1.Longitude == seg.p2.Longitude {
+			// Deal with seg.p1 and seg.p2 on one vertical line
+			if c.Longitude <= seg.p1.Longitude {
+				intersections++
+			}
+			continue
+		}
+
+		// Get slope of l1
+		// Determine which of p1, p2 is leftmost
+		leftP := seg.p1
+		rightP := seg.p2
+		if leftP.Longitude > rightP.Longitude {
+			leftP = seg.p2
+			rightP = seg.p1
+		}
+		// Calculate slope
+		slope := (rightP.Latitude - leftP.Latitude) / (rightP.Longitude - leftP.Longitude)
+		if slope == 0 {
+			// This segment is a horizontal line. Just compare its latitude with the latitude of the point we're testing.
+			if c.Latitude == leftP.Latitude && c.Longitude <= leftP.Longitude {
+				intersections++
+			}
+			continue
+		}
+
+		// Longitude of collision point is: Long = (Lat_c)/d
+		lonColl := c.Latitude / slope
+
+		log.Printf("c: %s leftP: %s rightP: %s slope: %f lonColl: %f", c, leftP, rightP, slope, lonColl)
+
+		if lonColl <= c.Longitude {
 			intersections++
 		}
 	}
