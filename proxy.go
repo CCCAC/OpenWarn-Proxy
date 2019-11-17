@@ -13,7 +13,7 @@ import (
 	"sync"
 	"time"
 
-	"golang.org/x/net/websocket"
+	"nhooyr.io/websocket"
 )
 
 const (
@@ -100,7 +100,14 @@ func (p *Proxy) unregisterUpdateChan(ch chan bool) {
 }
 
 // socketHandler runs a client connection
-func (p *Proxy) socketHandler(conn *websocket.Conn) {
+func (p *Proxy) socketHandler(w http.ResponseWriter, r *http.Request) {
+	conn, err := websocket.Accept(w, r, &websocket.AcceptOptions{InsecureSkipVerify: true})
+	if err != nil {
+		log.Println("Failed to set up websocket:", err)
+		return
+	}
+	defer conn.Close(websocket.StatusInternalError, "internal server error")
+
 	// When a user sends a Lat/Lon pair, check active alerts on p
 	// Otherwise, watch the active alerts for new things
 	quit := make(chan interface{})
@@ -111,15 +118,21 @@ func (p *Proxy) socketHandler(conn *websocket.Conn) {
 	p.registerUpdateChan(updateChan)
 	defer p.unregisterUpdateChan(updateChan)
 
-	// First part, run a goroutine to wait changes on the active alerts
+	// First part, run a goroutine to await changes on the active alerts
 	go func() {
 		var currentCoords Coordinate
 		coordsSet := false // True if coordinates have been received
 		running := true
-		enc := json.NewEncoder(conn)
 
 		log.Println("Waiting for changes in active alerts or coordinates")
 		for running {
+			writer, err := conn.Writer(r.Context(), websocket.MessageText)
+			if err != nil {
+				log.Println("can't set up writer:", err)
+				return
+			}
+			enc := json.NewEncoder(writer)
+
 			select {
 			case c := <-coords:
 				currentCoords = c
@@ -137,41 +150,57 @@ func (p *Proxy) socketHandler(conn *websocket.Conn) {
 			case <-quit:
 				running = false
 			}
+			writer.Close()
 		}
 		log.Println("Active alert watcher quitting")
 		close(done)
 	}()
 
-	// Consume from the websocket to gather new lat/lon pairs, exit on first error
-	dec := json.NewDecoder(conn)
-	for dec.More() {
-		var coord Coordinate
-		err := dec.Decode(&coord)
+	// Consume from the websocket tow gather new lat/lon pairs, exit on first error
+	for {
+		mt, reader, err := conn.Reader(r.Context())
 		if err != nil {
-			log.Println("Error while decoding:", err)
+			log.Println("Failed to read from websocket:", err)
 			break
 		}
+		if mt != websocket.MessageText {
+			// Consume all message and them
+			for {
+				buf := make([]byte, 32)
+				_, err := reader.Read(buf)
+				if err != nil {
+					log.Println("Failed to read from websocket:", err)
+					break
+				}
+			}
+			continue
+		}
 
-		// Update coordinates and re-check active alerts
-		coords <- coord
+		for {
+			dec := json.NewDecoder(reader)
+			var coord Coordinate
+			err = dec.Decode(&coord)
+			if err != nil {
+				log.Println("Error while decoding:", err)
+				break
+			}
+
+			// Update coordinates and re-check active alerts
+			coords <- coord
+		}
 	}
 
 	// Signal goroutine that it's time to go
 	close(quit)
 	// ... and wait for it to exit
 	<-done
-	conn.Close()
-}
-
-// socketHandshake is a dumb handshake handler for the websocket. This is required because the websocket library checks the origin
-// by default and rejects requests with an unexpected origin.
-func (p *Proxy) socketHandshake(conf *websocket.Config, req *http.Request) error {
-	log.Println("ws handshake. conf:", conf, "req:", req)
-	return nil
+	conn.Close(websocket.StatusNormalClosure, "")
 }
 
 // updateData requests new data from url and updates the stored alert messages. It returns true if an update was performed, and
 // false if no new data arrived
+//
+// It requires p to be locked.
 func (p *Proxy) updateData(url URL) (bool, error) {
 	if _, ok := p.activeAlerts[url]; !ok {
 		p.activeAlerts[url] = make(map[MessageID]alertMessage)
@@ -229,8 +258,9 @@ func (p *Proxy) updateData(url URL) (bool, error) {
 	return newAlerts != 0, nil
 }
 
-func (p *Proxy) run() {
-	// Periodically poll all URLs and update proxy state. On update, check subscribed customers for area containment and notify them.
+// updateLoop polls all URLs and updates the proxy state. On update, it checks subscribed customers for area containment and notify
+// them.
+func (p *Proxy) updateLoop() {
 	urls := []URL{url1, url2, url3, url4}
 
 	ticker := time.NewTicker(_updateDelay)
@@ -271,13 +301,9 @@ func main() {
 
 	proxy := newProxy()
 
-	go proxy.run()
+	go proxy.updateLoop()
 
-	srv := websocket.Server{
-		Handshake: proxy.socketHandshake,
-		Handler:   websocket.Handler(proxy.socketHandler),
-	}
-	http.Handle(_socketPath, srv)
+	http.HandleFunc(_socketPath, proxy.socketHandler)
 
 	err := http.ListenAndServe(_socketAddr, nil)
 	if err != nil {
