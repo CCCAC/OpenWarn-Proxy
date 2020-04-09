@@ -1,0 +1,27 @@
+# GraphQL schema example
+#
+# https://gqlgen.com/getting-started/
+
+input LocationInput {
+	latitude: Float!
+	longitude: Float!
+}
+
+type Location {
+	latitude: Float!
+	longitude: Float!
+}
+
+type Area {
+	points: [Location!]!
+}
+
+type Alert {
+	id: ID!
+	message: String!
+	area: Area!
+}
+
+type Query {
+	activeAlerts(location: LocationInput): [Alert!]!
+}
