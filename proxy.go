@@ -358,6 +358,7 @@ func main() {
 	go proxy.updateLoop()
 
 	http.HandleFunc(_socketPath, proxy.socketHandler)
+	http.Handle("/", http.FileServer(http.Dir("static")))
 
 	logrus.Info("Handlers configured, app started")
 

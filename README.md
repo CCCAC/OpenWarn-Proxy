@@ -30,9 +30,11 @@ This will poll for updates ever one-and-a-half minutes and provide a websocket
 at path "/coords" on port 8080. To connect from a locally running browser, open
 its Javascript console and run the following:
 
-    ws = new WebSocket("ws://localhost:8080/coords")
-    ws.onmessage = (msg) => { console.log(msg.data) }
-    ws.send(JSON.stringify({Latitude: 48.8345, Longitude: 8.3819})
+    ws = new WebSocket("ws://localhost:8080/coords");
+    ws.onmessage = (msg) => { console.log(msg.data) };
+    ws.onopen = (event) => {
+    	send(JSON.stringify({Latitude: 48.8345, Longitude: 8.3819}))
+    };
 
 You will immediately get a list of active alerts for that location, and if a new
 one comes in, it will be provided to the websocket and the callback function
