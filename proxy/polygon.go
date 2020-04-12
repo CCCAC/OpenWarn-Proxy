@@ -19,8 +19,9 @@ func (e InvalidCoordinateError) Error() string {
 	return fmt.Sprintf("Invalid coordinate string '%s', splits into %#v", e.s, e.v)
 }
 
-type Coordinate struct {
-	Latitude, Longitude float64
+type Location struct {
+	Latitude  float64 `json:"latitude"`
+	Longitude float64 `json:"longitude"`
 }
 
 // NewCoordinateFromString returns a Coordinate extracted from s. s has the following layout:
@@ -28,8 +29,8 @@ type Coordinate struct {
 //    s := "7.8,50.1" // Longitude, Latitude
 //
 // This layout is somewhat unusual, since usually the latitude comes first.
-func NewCoordinateFromString(s string) (Coordinate, error) {
-	var c Coordinate
+func NewCoordinateFromString(s string) (Location, error) {
+	var c Location
 	v := strings.Split(strings.TrimSpace(s), ",")
 	if len(v) != 2 {
 		return c, InvalidCoordinateError{s, v}
@@ -48,12 +49,12 @@ func NewCoordinateFromString(s string) (Coordinate, error) {
 	return c, nil
 }
 
-func (c Coordinate) String() string {
+func (c Location) String() string {
 	return fmt.Sprintf("[Lat:% 3.3f, Lon:% 3.3f]", c.Latitude, c.Longitude)
 }
 
 type LineSegment struct {
-	p1, p2 Coordinate
+	p1, p2 Location
 }
 
 func (l LineSegment) String() string {
@@ -106,7 +107,7 @@ func NewAreaFromString(coords string) (Area, error) {
 }
 
 // Contains returns true if c is inside the polygon described by a
-func (a Area) Contains(c Coordinate) bool {
+func (a Area) Contains(c Location) bool {
 	// Cast a ray from c to the right. Count crossings with line segments of a. If the number of crossings is even, c is outside
 	// of a.
 

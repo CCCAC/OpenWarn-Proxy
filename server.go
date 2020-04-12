@@ -1,4 +1,4 @@
-//go:generate gqlgen generate
+//go:generate go run github.com/99designs/gqlgen generate
 
 package main
 
@@ -26,10 +26,10 @@ func main() {
 	go proxy.UpdateLoop()
 
 	srv := handler.NewDefaultServer(generated.NewExecutableSchema(generated.Config{Resolvers: &graph.Resolver{
-		Proxy: proxy,
+		Proxy: &proxy,
 	}}))
 
-	http.Handle("/", playground.Handler("GraphQL playground", "/query"))
+	http.Handle("/", playground.Handler("OpenWarn-Proxy playground", "/query"))
 	http.Handle("/query", srv)
 
 	log.Printf("connect to http://localhost:%s/ for GraphQL playground", port)

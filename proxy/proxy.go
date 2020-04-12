@@ -25,16 +25,15 @@ const (
 type Proxy struct {
 	sync.Mutex
 	// Maps URLs to active messages, keyed by message ID
-	activeAlerts map[URL]map[MessageID]alertMessage
-	updateChans  map[chan bool]bool
+	activeAlerts map[URL]map[MessageID]Alert
 	areas        map[MessageID][]Area
 }
 
-func (p *Proxy) GetAllAlerts() []alertMessage {
+func (p *Proxy) GetAllAlerts() []Alert {
 	p.Lock()
 	defer p.Unlock()
 
-	var alerts []alertMessage
+	var alerts []Alert
 	for _, messages := range p.activeAlerts {
 		for _, alert := range messages {
 			alerts = append(alerts, alert)
@@ -46,7 +45,7 @@ func (p *Proxy) GetAllAlerts() []alertMessage {
 
 // getMatchingAlerts returns all alerts that have areas affecting the provided coordinate
 // This function is really fucking ugly.
-func (p *Proxy) GetMatchingAlerts(c Coordinate) []alertMessage {
+func (p *Proxy) GetMatchingAlerts(c Location) []Alert {
 	p.Lock()
 	defer p.Unlock()
 
@@ -59,7 +58,7 @@ func (p *Proxy) GetMatchingAlerts(c Coordinate) []alertMessage {
 		}
 	}
 
-	var matchingAlerts []alertMessage
+	var matchingAlerts []Alert
 	for id := range messageIDs {
 		// Gather all messages
 		for _, alerts := range p.activeAlerts {
@@ -74,23 +73,9 @@ func (p *Proxy) GetMatchingAlerts(c Coordinate) []alertMessage {
 
 func New() Proxy {
 	return Proxy{
-		activeAlerts: make(map[URL]map[MessageID]alertMessage),
+		activeAlerts: make(map[URL]map[MessageID]Alert),
 		areas:        make(map[MessageID][]Area),
 	}
-}
-
-func (p *Proxy) registerUpdateChan(ch chan bool) {
-	p.Lock()
-	defer p.Unlock()
-
-	p.updateChans[ch] = true
-}
-
-func (p *Proxy) unregisterUpdateChan(ch chan bool) {
-	p.Lock()
-	defer p.Unlock()
-
-	delete(p.updateChans, ch)
 }
 
 // updateData requests new data from url and updates the stored alert messages. It returns true if an update was performed, and
@@ -99,7 +84,7 @@ func (p *Proxy) unregisterUpdateChan(ch chan bool) {
 // It requires p to be locked.
 func (p *Proxy) updateData(url URL) (bool, error) {
 	if _, ok := p.activeAlerts[url]; !ok {
-		p.activeAlerts[url] = make(map[MessageID]alertMessage)
+		p.activeAlerts[url] = make(map[MessageID]Alert)
 	}
 
 	resp, err := http.Get(string(url))
@@ -113,7 +98,7 @@ func (p *Proxy) updateData(url URL) (bool, error) {
 		return false, err
 	}
 
-	var alerts []alertMessage
+	var alerts []Alert
 	err = json.Unmarshal(content, &alerts)
 	if err != nil {
 		return false, err
@@ -131,7 +116,7 @@ func (p *Proxy) updateData(url URL) (bool, error) {
 	}
 
 	// Set new active message map
-	p.activeAlerts[url] = make(map[MessageID]alertMessage)
+	p.activeAlerts[url] = make(map[MessageID]Alert)
 
 	for _, message := range alerts {
 		p.activeAlerts[url][message.Identifier] = message
@@ -162,24 +147,13 @@ func (p *Proxy) UpdateLoop() {
 	ticker := time.NewTicker(90 * time.Second)
 
 	for {
-		needUpdate := false
 		p.Lock()
 		p.areas = make(map[MessageID][]Area)
 		for _, url := range urls {
-			newData, err := p.updateData(url)
+			_, err := p.updateData(url)
 			if err != nil {
 				log.Println("update failed:", err)
 				continue
-			}
-			needUpdate = needUpdate || newData
-		}
-		if needUpdate {
-			// Non-blocking notify to make sure slow clients don't block us
-			for ch := range p.updateChans {
-				select {
-				case ch <- true:
-				default:
-				}
 			}
 		}
 		p.Unlock()

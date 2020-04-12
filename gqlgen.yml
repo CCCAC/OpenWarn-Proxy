@@ -24,10 +24,10 @@ resolver:
   package: graph
 
 # Optional: turn on use `gqlgen:"fieldName"` tags in your models
-# struct_tag: json
+struct_tag: gqlgen
 
 # Optional: turn on to use []Thing instead of []*Thing
-# omit_slice_element_pointers: false
+omit_slice_element_pointers: true
 
 # Optional: set to speed up generation time by not performing a final validation pass.
 # skip_validation: true

@@ -43,7 +43,7 @@ func (i infoItem) String() string {
 		i.Category, i.Event, i.ResponseType, i.Urgency, i.Severity, i.Headline, i.Description, i.Instructions, i.ContactInformation, i.URL, i.Expires)
 }
 
-type alertMessage struct {
+type Alert struct {
 	Identifier MessageID `json:"identifier"`
 	Sender     string    `json:"sender"`
 	Sent       time.Time `json:"sent"`    // Timestamp
@@ -55,7 +55,7 @@ type alertMessage struct {
 	Info []infoItem `json:"info"`
 }
 
-func (m alertMessage) String() string {
+func (m Alert) String() string {
 	return fmt.Sprintf("[Identifier: %s, Sender: %s, Sent: %s, Status: %s, MsgType: %s, Scope: %s, Info: %s]",
 		m.Identifier, m.Sender, m.Sent, m.Status, m.MsgType, m.Scope, m.Info)
 }

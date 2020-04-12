@@ -9,7 +9,7 @@ const (
 
 type testCase struct {
 	expected bool
-	c        Coordinate
+	c        Location
 }
 
 func TestPolygonInArea(t *testing.T) {
@@ -18,7 +18,7 @@ func TestPolygonInArea(t *testing.T) {
 		t.Fatal("unexpected error", err)
 	}
 
-	if a.Contains(Coordinate{0.0, 0.0}) {
+	if a.Contains(Location{0.0, 0.0}) {
 		t.Error("a should not contain (0.0, 0.0) but it does")
 	}
 
@@ -28,10 +28,10 @@ func TestPolygonInArea(t *testing.T) {
 	}
 
 	testCases := []testCase{
-		{true, Coordinate{0, 0}},
-		{false, Coordinate{0, -3}},
-		{true, Coordinate{-1, -1}},
-		{true, Coordinate{0.3, 0.3}},
+		{true, Location{0, 0}},
+		{false, Location{0, -3}},
+		{true, Location{-1, -1}},
+		{true, Location{0.3, 0.3}},
 	}
 
 	for _, testCase := range testCases {

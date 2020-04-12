@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"sync"
 	"sync/atomic"
+	"time"
 
 	"github.com/99designs/gqlgen/graphql"
 	"github.com/99designs/gqlgen/graphql/introspection"
@@ -43,9 +44,32 @@ type DirectiveRoot struct {
 
 type ComplexityRoot struct {
 	Alert struct {
-		Area    func(childComplexity int) int
-		ID      func(childComplexity int) int
-		Message func(childComplexity int) int
+		Metadata func(childComplexity int) int
+		Payload  func(childComplexity int) int
+	}
+
+	AlertMetadata struct {
+		ID     func(childComplexity int) int
+		Scope  func(childComplexity int) int
+		Sender func(childComplexity int) int
+		SentAt func(childComplexity int) int
+		Status func(childComplexity int) int
+		Type   func(childComplexity int) int
+	}
+
+	AlertPayload struct {
+		Area         func(childComplexity int) int
+		Category     func(childComplexity int) int
+		Certainty    func(childComplexity int) int
+		Contact      func(childComplexity int) int
+		Expires      func(childComplexity int) int
+		Headline     func(childComplexity int) int
+		Instructions func(childComplexity int) int
+		Message      func(childComplexity int) int
+		Response     func(childComplexity int) int
+		Severity     func(childComplexity int) int
+		URL          func(childComplexity int) int
+		Urgency      func(childComplexity int) int
 	}
 
 	Area struct {
@@ -63,7 +87,7 @@ type ComplexityRoot struct {
 }
 
 type QueryResolver interface {
-	ActiveAlerts(ctx context.Context, location *model.LocationInput) ([]*model.Alert, error)
+	ActiveAlerts(ctx context.Context, location *model.LocationInput) ([]model.Alert, error)
 }
 
 type executableSchema struct {
@@ -81,26 +105,145 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 	_ = ec
 	switch typeName + "." + field {
 
-	case "Alert.area":
-		if e.complexity.Alert.Area == nil {
+	case "Alert.metadata":
+		if e.complexity.Alert.Metadata == nil {
 			break
 		}
 
-		return e.complexity.Alert.Area(childComplexity), true
+		return e.complexity.Alert.Metadata(childComplexity), true
 
-	case "Alert.id":
-		if e.complexity.Alert.ID == nil {
+	case "Alert.payload":
+		if e.complexity.Alert.Payload == nil {
 			break
 		}
 
-		return e.complexity.Alert.ID(childComplexity), true
+		return e.complexity.Alert.Payload(childComplexity), true
 
-	case "Alert.message":
-		if e.complexity.Alert.Message == nil {
+	case "AlertMetadata.id":
+		if e.complexity.AlertMetadata.ID == nil {
 			break
 		}
 
-		return e.complexity.Alert.Message(childComplexity), true
+		return e.complexity.AlertMetadata.ID(childComplexity), true
+
+	case "AlertMetadata.scope":
+		if e.complexity.AlertMetadata.Scope == nil {
+			break
+		}
+
+		return e.complexity.AlertMetadata.Scope(childComplexity), true
+
+	case "AlertMetadata.sender":
+		if e.complexity.AlertMetadata.Sender == nil {
+			break
+		}
+
+		return e.complexity.AlertMetadata.Sender(childComplexity), true
+
+	case "AlertMetadata.sentAt":
+		if e.complexity.AlertMetadata.SentAt == nil {
+			break
+		}
+
+		return e.complexity.AlertMetadata.SentAt(childComplexity), true
+
+	case "AlertMetadata.status":
+		if e.complexity.AlertMetadata.Status == nil {
+			break
+		}
+
+		return e.complexity.AlertMetadata.Status(childComplexity), true
+
+	case "AlertMetadata.type":
+		if e.complexity.AlertMetadata.Type == nil {
+			break
+		}
+
+		return e.complexity.AlertMetadata.Type(childComplexity), true
+
+	case "AlertPayload.area":
+		if e.complexity.AlertPayload.Area == nil {
+			break
+		}
+
+		return e.complexity.AlertPayload.Area(childComplexity), true
+
+	case "AlertPayload.category":
+		if e.complexity.AlertPayload.Category == nil {
+			break
+		}
+
+		return e.complexity.AlertPayload.Category(childComplexity), true
+
+	case "AlertPayload.certainty":
+		if e.complexity.AlertPayload.Certainty == nil {
+			break
+		}
+
+		return e.complexity.AlertPayload.Certainty(childComplexity), true
+
+	case "AlertPayload.contact":
+		if e.complexity.AlertPayload.Contact == nil {
+			break
+		}
+
+		return e.complexity.AlertPayload.Contact(childComplexity), true
+
+	case "AlertPayload.expires":
+		if e.complexity.AlertPayload.Expires == nil {
+			break
+		}
+
+		return e.complexity.AlertPayload.Expires(childComplexity), true
+
+	case "AlertPayload.headline":
+		if e.complexity.AlertPayload.Headline == nil {
+			break
+		}
+
+		return e.complexity.AlertPayload.Headline(childComplexity), true
+
+	case "AlertPayload.instructions":
+		if e.complexity.AlertPayload.Instructions == nil {
+			break
+		}
+
+		return e.complexity.AlertPayload.Instructions(childComplexity), true
+
+	case "AlertPayload.message":
+		if e.complexity.AlertPayload.Message == nil {
+			break
+		}
+
+		return e.complexity.AlertPayload.Message(childComplexity), true
+
+	case "AlertPayload.response":
+		if e.complexity.AlertPayload.Response == nil {
+			break
+		}
+
+		return e.complexity.AlertPayload.Response(childComplexity), true
+
+	case "AlertPayload.severity":
+		if e.complexity.AlertPayload.Severity == nil {
+			break
+		}
+
+		return e.complexity.AlertPayload.Severity(childComplexity), true
+
+	case "AlertPayload.url":
+		if e.complexity.AlertPayload.URL == nil {
+			break
+		}
+
+		return e.complexity.AlertPayload.URL(childComplexity), true
+
+	case "AlertPayload.urgency":
+		if e.complexity.AlertPayload.Urgency == nil {
+			break
+		}
+
+		return e.complexity.AlertPayload.Urgency(childComplexity), true
 
 	case "Area.points":
 		if e.complexity.Area.Points == nil {
@@ -185,11 +328,7 @@ func (ec *executionContext) introspectType(name string) (*introspection.Type, er
 }
 
 var sources = []*ast.Source{
-	&ast.Source{Name: "graph/schema.graphqls", Input: `# GraphQL schema example
-#
-# https://gqlgen.com/getting-started/
-
-input LocationInput {
+	&ast.Source{Name: "graph/schema.graphqls", Input: `input LocationInput {
 	latitude: Float!
 	longitude: Float!
 }
@@ -203,10 +342,55 @@ type Area {
 	points: [Location!]!
 }
 
-type Alert {
+scalar Time # Comes from gqlgen
+
+enum Status {
+	Actual
+}
+
+enum Type {
+	Cancel
+	Alert
+	Update
+}
+
+enum Scope {
+	Public
+}
+
+type AlertMetadata {
+	# Metadata
 	id: ID!
+	sender: String!
+	sentAt: Time!
+	status: Status!
+	type: Type!
+	scope: Scope!
+}
+
+type AlertPayload {
+	# Payload, may be more than one
+	headline: String!
 	message: String!
-	area: Area!
+	instructions: String # TODO: Unify with suggested response?
+	contact: String
+	url: String # TODO: Unify with contact?
+	area: [Area!]!
+	expires: Time! # TODO: Move to message metadata?
+
+	category: String!  # TODO: Should be an enum
+	response: String!  # TODO: Should be an enum, suggested response to event: Monitor/Prepare
+	urgency: String!   # TODO: Should be an enum: Immediate/...
+	severity: String!  # TODO: Should be an enum: Minor/...
+	certainty: String! # TODO: Should be an enum: How reliable is this information?
+
+	# TODO:
+	# - there is also "parameter", which seems to be a KV map of additional metadata items
+}
+
+type Alert {
+	metadata: AlertMetadata!
+	payload: [AlertPayload!]!
 }
 
 type Query {
@@ -283,7 +467,7 @@ func (ec *executionContext) field___Type_fields_args(ctx context.Context, rawArg
 
 // region    **************************** field.gotpl *****************************
 
-func (ec *executionContext) _Alert_id(ctx context.Context, field graphql.CollectedField, obj *model.Alert) (ret graphql.Marshaler) {
+func (ec *executionContext) _Alert_metadata(ctx context.Context, field graphql.CollectedField, obj *model.Alert) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -292,6 +476,74 @@ func (ec *executionContext) _Alert_id(ctx context.Context, field graphql.Collect
 	}()
 	fc := &graphql.FieldContext{
 		Object:   "Alert",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Metadata, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.AlertMetadata)
+	fc.Result = res
+	return ec.marshalNAlertMetadata2ᚖgithubᚗcomᚋcccacᚋOpenWarnᚑProxyᚋgraphᚋmodelᚐAlertMetadata(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Alert_payload(ctx context.Context, field graphql.CollectedField, obj *model.Alert) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Alert",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Payload, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]model.AlertPayload)
+	fc.Result = res
+	return ec.marshalNAlertPayload2ᚕgithubᚗcomᚋcccacᚋOpenWarnᚑProxyᚋgraphᚋmodelᚐAlertPayloadᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _AlertMetadata_id(ctx context.Context, field graphql.CollectedField, obj *model.AlertMetadata) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "AlertMetadata",
 		Field:    field,
 		Args:     nil,
 		IsMethod: false,
@@ -317,7 +569,7 @@ func (ec *executionContext) _Alert_id(ctx context.Context, field graphql.Collect
 	return ec.marshalNID2string(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Alert_message(ctx context.Context, field graphql.CollectedField, obj *model.Alert) (ret graphql.Marshaler) {
+func (ec *executionContext) _AlertMetadata_sender(ctx context.Context, field graphql.CollectedField, obj *model.AlertMetadata) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -325,7 +577,211 @@ func (ec *executionContext) _Alert_message(ctx context.Context, field graphql.Co
 		}
 	}()
 	fc := &graphql.FieldContext{
-		Object:   "Alert",
+		Object:   "AlertMetadata",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Sender, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _AlertMetadata_sentAt(ctx context.Context, field graphql.CollectedField, obj *model.AlertMetadata) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "AlertMetadata",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.SentAt, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(time.Time)
+	fc.Result = res
+	return ec.marshalNTime2timeᚐTime(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _AlertMetadata_status(ctx context.Context, field graphql.CollectedField, obj *model.AlertMetadata) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "AlertMetadata",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Status, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(model.Status)
+	fc.Result = res
+	return ec.marshalNStatus2githubᚗcomᚋcccacᚋOpenWarnᚑProxyᚋgraphᚋmodelᚐStatus(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _AlertMetadata_type(ctx context.Context, field graphql.CollectedField, obj *model.AlertMetadata) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "AlertMetadata",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Type, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(model.Type)
+	fc.Result = res
+	return ec.marshalNType2githubᚗcomᚋcccacᚋOpenWarnᚑProxyᚋgraphᚋmodelᚐType(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _AlertMetadata_scope(ctx context.Context, field graphql.CollectedField, obj *model.AlertMetadata) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "AlertMetadata",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Scope, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(model.Scope)
+	fc.Result = res
+	return ec.marshalNScope2githubᚗcomᚋcccacᚋOpenWarnᚑProxyᚋgraphᚋmodelᚐScope(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _AlertPayload_headline(ctx context.Context, field graphql.CollectedField, obj *model.AlertPayload) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "AlertPayload",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Headline, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _AlertPayload_message(ctx context.Context, field graphql.CollectedField, obj *model.AlertPayload) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "AlertPayload",
 		Field:    field,
 		Args:     nil,
 		IsMethod: false,
@@ -351,7 +807,7 @@ func (ec *executionContext) _Alert_message(ctx context.Context, field graphql.Co
 	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Alert_area(ctx context.Context, field graphql.CollectedField, obj *model.Alert) (ret graphql.Marshaler) {
+func (ec *executionContext) _AlertPayload_instructions(ctx context.Context, field graphql.CollectedField, obj *model.AlertPayload) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -359,7 +815,100 @@ func (ec *executionContext) _Alert_area(ctx context.Context, field graphql.Colle
 		}
 	}()
 	fc := &graphql.FieldContext{
-		Object:   "Alert",
+		Object:   "AlertPayload",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Instructions, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*string)
+	fc.Result = res
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _AlertPayload_contact(ctx context.Context, field graphql.CollectedField, obj *model.AlertPayload) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "AlertPayload",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Contact, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*string)
+	fc.Result = res
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _AlertPayload_url(ctx context.Context, field graphql.CollectedField, obj *model.AlertPayload) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "AlertPayload",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.URL, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*string)
+	fc.Result = res
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _AlertPayload_area(ctx context.Context, field graphql.CollectedField, obj *model.AlertPayload) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "AlertPayload",
 		Field:    field,
 		Args:     nil,
 		IsMethod: false,
@@ -380,9 +929,213 @@ func (ec *executionContext) _Alert_area(ctx context.Context, field graphql.Colle
 		}
 		return graphql.Null
 	}
-	res := resTmp.(*model.Area)
+	res := resTmp.([]model.Area)
 	fc.Result = res
-	return ec.marshalNArea2ᚖgithubᚗcomᚋcccacᚋOpenWarnᚑProxyᚋgraphᚋmodelᚐArea(ctx, field.Selections, res)
+	return ec.marshalNArea2ᚕgithubᚗcomᚋcccacᚋOpenWarnᚑProxyᚋgraphᚋmodelᚐAreaᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _AlertPayload_expires(ctx context.Context, field graphql.CollectedField, obj *model.AlertPayload) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "AlertPayload",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Expires, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(time.Time)
+	fc.Result = res
+	return ec.marshalNTime2timeᚐTime(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _AlertPayload_category(ctx context.Context, field graphql.CollectedField, obj *model.AlertPayload) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "AlertPayload",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Category, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _AlertPayload_response(ctx context.Context, field graphql.CollectedField, obj *model.AlertPayload) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "AlertPayload",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Response, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _AlertPayload_urgency(ctx context.Context, field graphql.CollectedField, obj *model.AlertPayload) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "AlertPayload",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Urgency, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _AlertPayload_severity(ctx context.Context, field graphql.CollectedField, obj *model.AlertPayload) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "AlertPayload",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Severity, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _AlertPayload_certainty(ctx context.Context, field graphql.CollectedField, obj *model.AlertPayload) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "AlertPayload",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Certainty, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Area_points(ctx context.Context, field graphql.CollectedField, obj *model.Area) (ret graphql.Marshaler) {
@@ -414,9 +1167,9 @@ func (ec *executionContext) _Area_points(ctx context.Context, field graphql.Coll
 		}
 		return graphql.Null
 	}
-	res := resTmp.([]*model.Location)
+	res := resTmp.([]model.Location)
 	fc.Result = res
-	return ec.marshalNLocation2ᚕᚖgithubᚗcomᚋcccacᚋOpenWarnᚑProxyᚋgraphᚋmodelᚐLocationᚄ(ctx, field.Selections, res)
+	return ec.marshalNLocation2ᚕgithubᚗcomᚋcccacᚋOpenWarnᚑProxyᚋgraphᚋmodelᚐLocationᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Location_latitude(ctx context.Context, field graphql.CollectedField, obj *model.Location) (ret graphql.Marshaler) {
@@ -523,9 +1276,9 @@ func (ec *executionContext) _Query_activeAlerts(ctx context.Context, field graph
 		}
 		return graphql.Null
 	}
-	res := resTmp.([]*model.Alert)
+	res := resTmp.([]model.Alert)
 	fc.Result = res
-	return ec.marshalNAlert2ᚕᚖgithubᚗcomᚋcccacᚋOpenWarnᚑProxyᚋgraphᚋmodelᚐAlertᚄ(ctx, field.Selections, res)
+	return ec.marshalNAlert2ᚕgithubᚗcomᚋcccacᚋOpenWarnᚑProxyᚋgraphᚋmodelᚐAlertᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query___type(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -1695,18 +2448,138 @@ func (ec *executionContext) _Alert(ctx context.Context, sel ast.SelectionSet, ob
 		switch field.Name {
 		case "__typename":
 			out.Values[i] = graphql.MarshalString("Alert")
+		case "metadata":
+			out.Values[i] = ec._Alert_metadata(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "payload":
+			out.Values[i] = ec._Alert_payload(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
+var alertMetadataImplementors = []string{"AlertMetadata"}
+
+func (ec *executionContext) _AlertMetadata(ctx context.Context, sel ast.SelectionSet, obj *model.AlertMetadata) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, alertMetadataImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("AlertMetadata")
 		case "id":
-			out.Values[i] = ec._Alert_id(ctx, field, obj)
+			out.Values[i] = ec._AlertMetadata_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "sender":
+			out.Values[i] = ec._AlertMetadata_sender(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "sentAt":
+			out.Values[i] = ec._AlertMetadata_sentAt(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "status":
+			out.Values[i] = ec._AlertMetadata_status(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "type":
+			out.Values[i] = ec._AlertMetadata_type(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "scope":
+			out.Values[i] = ec._AlertMetadata_scope(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
+var alertPayloadImplementors = []string{"AlertPayload"}
+
+func (ec *executionContext) _AlertPayload(ctx context.Context, sel ast.SelectionSet, obj *model.AlertPayload) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, alertPayloadImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("AlertPayload")
+		case "headline":
+			out.Values[i] = ec._AlertPayload_headline(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
 		case "message":
-			out.Values[i] = ec._Alert_message(ctx, field, obj)
+			out.Values[i] = ec._AlertPayload_message(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
+		case "instructions":
+			out.Values[i] = ec._AlertPayload_instructions(ctx, field, obj)
+		case "contact":
+			out.Values[i] = ec._AlertPayload_contact(ctx, field, obj)
+		case "url":
+			out.Values[i] = ec._AlertPayload_url(ctx, field, obj)
 		case "area":
-			out.Values[i] = ec._Alert_area(ctx, field, obj)
+			out.Values[i] = ec._AlertPayload_area(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "expires":
+			out.Values[i] = ec._AlertPayload_expires(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "category":
+			out.Values[i] = ec._AlertPayload_category(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "response":
+			out.Values[i] = ec._AlertPayload_response(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "urgency":
+			out.Values[i] = ec._AlertPayload_urgency(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "severity":
+			out.Values[i] = ec._AlertPayload_severity(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "certainty":
+			out.Values[i] = ec._AlertPayload_certainty(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
@@ -2073,7 +2946,7 @@ func (ec *executionContext) marshalNAlert2githubᚗcomᚋcccacᚋOpenWarnᚑProx
 	return ec._Alert(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalNAlert2ᚕᚖgithubᚗcomᚋcccacᚋOpenWarnᚑProxyᚋgraphᚋmodelᚐAlertᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.Alert) graphql.Marshaler {
+func (ec *executionContext) marshalNAlert2ᚕgithubᚗcomᚋcccacᚋOpenWarnᚑProxyᚋgraphᚋmodelᚐAlertᚄ(ctx context.Context, sel ast.SelectionSet, v []model.Alert) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
 	isLen1 := len(v) == 1
@@ -2097,7 +2970,7 @@ func (ec *executionContext) marshalNAlert2ᚕᚖgithubᚗcomᚋcccacᚋOpenWarn�
 			if !isLen1 {
 				defer wg.Done()
 			}
-			ret[i] = ec.marshalNAlert2ᚖgithubᚗcomᚋcccacᚋOpenWarnᚑProxyᚋgraphᚋmodelᚐAlert(ctx, sel, v[i])
+			ret[i] = ec.marshalNAlert2githubᚗcomᚋcccacᚋOpenWarnᚑProxyᚋgraphᚋmodelᚐAlert(ctx, sel, v[i])
 		}
 		if isLen1 {
 			f(i)
@@ -2110,28 +2983,100 @@ func (ec *executionContext) marshalNAlert2ᚕᚖgithubᚗcomᚋcccacᚋOpenWarn�
 	return ret
 }
 
-func (ec *executionContext) marshalNAlert2ᚖgithubᚗcomᚋcccacᚋOpenWarnᚑProxyᚋgraphᚋmodelᚐAlert(ctx context.Context, sel ast.SelectionSet, v *model.Alert) graphql.Marshaler {
+func (ec *executionContext) marshalNAlertMetadata2githubᚗcomᚋcccacᚋOpenWarnᚑProxyᚋgraphᚋmodelᚐAlertMetadata(ctx context.Context, sel ast.SelectionSet, v model.AlertMetadata) graphql.Marshaler {
+	return ec._AlertMetadata(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNAlertMetadata2ᚖgithubᚗcomᚋcccacᚋOpenWarnᚑProxyᚋgraphᚋmodelᚐAlertMetadata(ctx context.Context, sel ast.SelectionSet, v *model.AlertMetadata) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "must not be null")
 		}
 		return graphql.Null
 	}
-	return ec._Alert(ctx, sel, v)
+	return ec._AlertMetadata(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNAlertPayload2githubᚗcomᚋcccacᚋOpenWarnᚑProxyᚋgraphᚋmodelᚐAlertPayload(ctx context.Context, sel ast.SelectionSet, v model.AlertPayload) graphql.Marshaler {
+	return ec._AlertPayload(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNAlertPayload2ᚕgithubᚗcomᚋcccacᚋOpenWarnᚑProxyᚋgraphᚋmodelᚐAlertPayloadᚄ(ctx context.Context, sel ast.SelectionSet, v []model.AlertPayload) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNAlertPayload2githubᚗcomᚋcccacᚋOpenWarnᚑProxyᚋgraphᚋmodelᚐAlertPayload(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+	return ret
 }
 
 func (ec *executionContext) marshalNArea2githubᚗcomᚋcccacᚋOpenWarnᚑProxyᚋgraphᚋmodelᚐArea(ctx context.Context, sel ast.SelectionSet, v model.Area) graphql.Marshaler {
 	return ec._Area(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalNArea2ᚖgithubᚗcomᚋcccacᚋOpenWarnᚑProxyᚋgraphᚋmodelᚐArea(ctx context.Context, sel ast.SelectionSet, v *model.Area) graphql.Marshaler {
-	if v == nil {
-		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
+func (ec *executionContext) marshalNArea2ᚕgithubᚗcomᚋcccacᚋOpenWarnᚑProxyᚋgraphᚋmodelᚐAreaᚄ(ctx context.Context, sel ast.SelectionSet, v []model.Area) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
 	}
-	return ec._Area(ctx, sel, v)
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNArea2githubᚗcomᚋcccacᚋOpenWarnᚑProxyᚋgraphᚋmodelᚐArea(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+	return ret
 }
 
 func (ec *executionContext) unmarshalNBoolean2bool(ctx context.Context, v interface{}) (bool, error) {
@@ -2180,7 +3125,7 @@ func (ec *executionContext) marshalNLocation2githubᚗcomᚋcccacᚋOpenWarnᚑP
 	return ec._Location(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalNLocation2ᚕᚖgithubᚗcomᚋcccacᚋOpenWarnᚑProxyᚋgraphᚋmodelᚐLocationᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.Location) graphql.Marshaler {
+func (ec *executionContext) marshalNLocation2ᚕgithubᚗcomᚋcccacᚋOpenWarnᚑProxyᚋgraphᚋmodelᚐLocationᚄ(ctx context.Context, sel ast.SelectionSet, v []model.Location) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
 	isLen1 := len(v) == 1
@@ -2204,7 +3149,7 @@ func (ec *executionContext) marshalNLocation2ᚕᚖgithubᚗcomᚋcccacᚋOpenWa
 			if !isLen1 {
 				defer wg.Done()
 			}
-			ret[i] = ec.marshalNLocation2ᚖgithubᚗcomᚋcccacᚋOpenWarnᚑProxyᚋgraphᚋmodelᚐLocation(ctx, sel, v[i])
+			ret[i] = ec.marshalNLocation2githubᚗcomᚋcccacᚋOpenWarnᚑProxyᚋgraphᚋmodelᚐLocation(ctx, sel, v[i])
 		}
 		if isLen1 {
 			f(i)
@@ -2217,14 +3162,22 @@ func (ec *executionContext) marshalNLocation2ᚕᚖgithubᚗcomᚋcccacᚋOpenWa
 	return ret
 }
 
-func (ec *executionContext) marshalNLocation2ᚖgithubᚗcomᚋcccacᚋOpenWarnᚑProxyᚋgraphᚋmodelᚐLocation(ctx context.Context, sel ast.SelectionSet, v *model.Location) graphql.Marshaler {
-	if v == nil {
-		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	return ec._Location(ctx, sel, v)
+func (ec *executionContext) unmarshalNScope2githubᚗcomᚋcccacᚋOpenWarnᚑProxyᚋgraphᚋmodelᚐScope(ctx context.Context, v interface{}) (model.Scope, error) {
+	var res model.Scope
+	return res, res.UnmarshalGQL(v)
+}
+
+func (ec *executionContext) marshalNScope2githubᚗcomᚋcccacᚋOpenWarnᚑProxyᚋgraphᚋmodelᚐScope(ctx context.Context, sel ast.SelectionSet, v model.Scope) graphql.Marshaler {
+	return v
+}
+
+func (ec *executionContext) unmarshalNStatus2githubᚗcomᚋcccacᚋOpenWarnᚑProxyᚋgraphᚋmodelᚐStatus(ctx context.Context, v interface{}) (model.Status, error) {
+	var res model.Status
+	return res, res.UnmarshalGQL(v)
+}
+
+func (ec *executionContext) marshalNStatus2githubᚗcomᚋcccacᚋOpenWarnᚑProxyᚋgraphᚋmodelᚐStatus(ctx context.Context, sel ast.SelectionSet, v model.Status) graphql.Marshaler {
+	return v
 }
 
 func (ec *executionContext) unmarshalNString2string(ctx context.Context, v interface{}) (string, error) {
@@ -2239,6 +3192,29 @@ func (ec *executionContext) marshalNString2string(ctx context.Context, sel ast.S
 		}
 	}
 	return res
+}
+
+func (ec *executionContext) unmarshalNTime2timeᚐTime(ctx context.Context, v interface{}) (time.Time, error) {
+	return graphql.UnmarshalTime(v)
+}
+
+func (ec *executionContext) marshalNTime2timeᚐTime(ctx context.Context, sel ast.SelectionSet, v time.Time) graphql.Marshaler {
+	res := graphql.MarshalTime(v)
+	if res == graphql.Null {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+	}
+	return res
+}
+
+func (ec *executionContext) unmarshalNType2githubᚗcomᚋcccacᚋOpenWarnᚑProxyᚋgraphᚋmodelᚐType(ctx context.Context, v interface{}) (model.Type, error) {
+	var res model.Type
+	return res, res.UnmarshalGQL(v)
+}
+
+func (ec *executionContext) marshalNType2githubᚗcomᚋcccacᚋOpenWarnᚑProxyᚋgraphᚋmodelᚐType(ctx context.Context, sel ast.SelectionSet, v model.Type) graphql.Marshaler {
+	return v
 }
 
 func (ec *executionContext) marshalN__Directive2githubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚋintrospectionᚐDirective(ctx context.Context, sel ast.SelectionSet, v introspection.Directive) graphql.Marshaler {
