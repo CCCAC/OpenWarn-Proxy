@@ -8,15 +8,15 @@ import (
 type URL string
 type MessageID string
 
-type geocodeDescription struct {
+type Geocode struct {
 	ValueName string `json:"valueName"`
 	Value     string `json:"value"`
 }
 
-type areaDescription struct {
-	Description string               `json:"areaDesc"`
-	Polygon     []string             `json:"polygon"` // TODO: Add proper extraction
-	Geocode     []geocodeDescription `json:"geocode"`
+type AreaDescription struct {
+	Description string    `json:"areaDesc"`
+	Polygon     []string  `json:"polygon"` // TODO: Add proper extraction
+	Geocode     []Geocode `json:"geocode"`
 }
 
 type infoItem struct {
@@ -32,7 +32,7 @@ type infoItem struct {
 	Instructions       string            `json:"instruction"`
 	ContactInformation string            `json:"contact"`
 	URL                URL               `json:"web"`
-	Area               []areaDescription `json:"area"` // List of affected areas
+	Area               []AreaDescription `json:"area"` // List of affected areas
 	Expires            time.Time         `json:"expires"`
 
 	// TODO: parameter: list of key-value metadata items

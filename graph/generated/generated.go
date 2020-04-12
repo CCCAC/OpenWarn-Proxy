@@ -73,12 +73,28 @@ type ComplexityRoot struct {
 	}
 
 	Area struct {
-		Points func(childComplexity int) int
+		Description func(childComplexity int) int
+		Geocode     func(childComplexity int) int
+		Polygons    func(childComplexity int) int
+	}
+
+	Geocode struct {
+		Name  func(childComplexity int) int
+		Value func(childComplexity int) int
+	}
+
+	LineSegment struct {
+		P1 func(childComplexity int) int
+		P2 func(childComplexity int) int
 	}
 
 	Location struct {
 		Latitude  func(childComplexity int) int
 		Longitude func(childComplexity int) int
+	}
+
+	Polygon struct {
+		Segments func(childComplexity int) int
 	}
 
 	Query struct {
@@ -245,12 +261,54 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.AlertPayload.Urgency(childComplexity), true
 
-	case "Area.points":
-		if e.complexity.Area.Points == nil {
+	case "Area.description":
+		if e.complexity.Area.Description == nil {
 			break
 		}
 
-		return e.complexity.Area.Points(childComplexity), true
+		return e.complexity.Area.Description(childComplexity), true
+
+	case "Area.geocode":
+		if e.complexity.Area.Geocode == nil {
+			break
+		}
+
+		return e.complexity.Area.Geocode(childComplexity), true
+
+	case "Area.polygons":
+		if e.complexity.Area.Polygons == nil {
+			break
+		}
+
+		return e.complexity.Area.Polygons(childComplexity), true
+
+	case "Geocode.name":
+		if e.complexity.Geocode.Name == nil {
+			break
+		}
+
+		return e.complexity.Geocode.Name(childComplexity), true
+
+	case "Geocode.value":
+		if e.complexity.Geocode.Value == nil {
+			break
+		}
+
+		return e.complexity.Geocode.Value(childComplexity), true
+
+	case "LineSegment.p1":
+		if e.complexity.LineSegment.P1 == nil {
+			break
+		}
+
+		return e.complexity.LineSegment.P1(childComplexity), true
+
+	case "LineSegment.p2":
+		if e.complexity.LineSegment.P2 == nil {
+			break
+		}
+
+		return e.complexity.LineSegment.P2(childComplexity), true
 
 	case "Location.latitude":
 		if e.complexity.Location.Latitude == nil {
@@ -265,6 +323,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Location.Longitude(childComplexity), true
+
+	case "Polygon.segments":
+		if e.complexity.Polygon.Segments == nil {
+			break
+		}
+
+		return e.complexity.Polygon.Segments(childComplexity), true
 
 	case "Query.activeAlerts":
 		if e.complexity.Query.ActiveAlerts == nil {
@@ -338,8 +403,24 @@ type Location {
 	longitude: Float!
 }
 
+type Geocode {
+	name: String!
+	value: String!
+}
+
+type LineSegment {
+	p1: Location!
+	p2: Location!
+}
+
+type Polygon {
+	segments: [LineSegment!]!
+}
+
 type Area {
-	points: [Location!]!
+	polygons: [Polygon!]!
+	geocode: [Geocode!]!
+	description: String!
 }
 
 scalar Time # Comes from gqlgen
@@ -1138,7 +1219,7 @@ func (ec *executionContext) _AlertPayload_certainty(ctx context.Context, field g
 	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Area_points(ctx context.Context, field graphql.CollectedField, obj *model.Area) (ret graphql.Marshaler) {
+func (ec *executionContext) _Area_polygons(ctx context.Context, field graphql.CollectedField, obj *model.Area) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -1155,7 +1236,7 @@ func (ec *executionContext) _Area_points(ctx context.Context, field graphql.Coll
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.Points, nil
+		return obj.Polygons, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -1167,9 +1248,213 @@ func (ec *executionContext) _Area_points(ctx context.Context, field graphql.Coll
 		}
 		return graphql.Null
 	}
-	res := resTmp.([]model.Location)
+	res := resTmp.([]model.Polygon)
 	fc.Result = res
-	return ec.marshalNLocation2ᚕgithubᚗcomᚋcccacᚋOpenWarnᚑProxyᚋgraphᚋmodelᚐLocationᚄ(ctx, field.Selections, res)
+	return ec.marshalNPolygon2ᚕgithubᚗcomᚋcccacᚋOpenWarnᚑProxyᚋgraphᚋmodelᚐPolygonᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Area_geocode(ctx context.Context, field graphql.CollectedField, obj *model.Area) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Area",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Geocode, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]model.Geocode)
+	fc.Result = res
+	return ec.marshalNGeocode2ᚕgithubᚗcomᚋcccacᚋOpenWarnᚑProxyᚋgraphᚋmodelᚐGeocodeᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Area_description(ctx context.Context, field graphql.CollectedField, obj *model.Area) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Area",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Description, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Geocode_name(ctx context.Context, field graphql.CollectedField, obj *model.Geocode) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Geocode",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Name, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Geocode_value(ctx context.Context, field graphql.CollectedField, obj *model.Geocode) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Geocode",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Value, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _LineSegment_p1(ctx context.Context, field graphql.CollectedField, obj *model.LineSegment) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "LineSegment",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.P1, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.Location)
+	fc.Result = res
+	return ec.marshalNLocation2ᚖgithubᚗcomᚋcccacᚋOpenWarnᚑProxyᚋgraphᚋmodelᚐLocation(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _LineSegment_p2(ctx context.Context, field graphql.CollectedField, obj *model.LineSegment) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "LineSegment",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.P2, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.Location)
+	fc.Result = res
+	return ec.marshalNLocation2ᚖgithubᚗcomᚋcccacᚋOpenWarnᚑProxyᚋgraphᚋmodelᚐLocation(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Location_latitude(ctx context.Context, field graphql.CollectedField, obj *model.Location) (ret graphql.Marshaler) {
@@ -1238,6 +1523,40 @@ func (ec *executionContext) _Location_longitude(ctx context.Context, field graph
 	res := resTmp.(float64)
 	fc.Result = res
 	return ec.marshalNFloat2float64(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Polygon_segments(ctx context.Context, field graphql.CollectedField, obj *model.Polygon) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Polygon",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Segments, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]model.LineSegment)
+	fc.Result = res
+	return ec.marshalNLineSegment2ᚕgithubᚗcomᚋcccacᚋOpenWarnᚑProxyᚋgraphᚋmodelᚐLineSegmentᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query_activeAlerts(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -2605,8 +2924,82 @@ func (ec *executionContext) _Area(ctx context.Context, sel ast.SelectionSet, obj
 		switch field.Name {
 		case "__typename":
 			out.Values[i] = graphql.MarshalString("Area")
-		case "points":
-			out.Values[i] = ec._Area_points(ctx, field, obj)
+		case "polygons":
+			out.Values[i] = ec._Area_polygons(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "geocode":
+			out.Values[i] = ec._Area_geocode(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "description":
+			out.Values[i] = ec._Area_description(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
+var geocodeImplementors = []string{"Geocode"}
+
+func (ec *executionContext) _Geocode(ctx context.Context, sel ast.SelectionSet, obj *model.Geocode) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, geocodeImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("Geocode")
+		case "name":
+			out.Values[i] = ec._Geocode_name(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "value":
+			out.Values[i] = ec._Geocode_value(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
+var lineSegmentImplementors = []string{"LineSegment"}
+
+func (ec *executionContext) _LineSegment(ctx context.Context, sel ast.SelectionSet, obj *model.LineSegment) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, lineSegmentImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("LineSegment")
+		case "p1":
+			out.Values[i] = ec._LineSegment_p1(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "p2":
+			out.Values[i] = ec._LineSegment_p2(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
@@ -2639,6 +3032,33 @@ func (ec *executionContext) _Location(ctx context.Context, sel ast.SelectionSet,
 			}
 		case "longitude":
 			out.Values[i] = ec._Location_longitude(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
+var polygonImplementors = []string{"Polygon"}
+
+func (ec *executionContext) _Polygon(ctx context.Context, sel ast.SelectionSet, obj *model.Polygon) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, polygonImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("Polygon")
+		case "segments":
+			out.Values[i] = ec._Polygon_segments(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
@@ -3107,25 +3527,11 @@ func (ec *executionContext) marshalNFloat2float64(ctx context.Context, sel ast.S
 	return res
 }
 
-func (ec *executionContext) unmarshalNID2string(ctx context.Context, v interface{}) (string, error) {
-	return graphql.UnmarshalID(v)
+func (ec *executionContext) marshalNGeocode2githubᚗcomᚋcccacᚋOpenWarnᚑProxyᚋgraphᚋmodelᚐGeocode(ctx context.Context, sel ast.SelectionSet, v model.Geocode) graphql.Marshaler {
+	return ec._Geocode(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalNID2string(ctx context.Context, sel ast.SelectionSet, v string) graphql.Marshaler {
-	res := graphql.MarshalID(v)
-	if res == graphql.Null {
-		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
-			ec.Errorf(ctx, "must not be null")
-		}
-	}
-	return res
-}
-
-func (ec *executionContext) marshalNLocation2githubᚗcomᚋcccacᚋOpenWarnᚑProxyᚋgraphᚋmodelᚐLocation(ctx context.Context, sel ast.SelectionSet, v model.Location) graphql.Marshaler {
-	return ec._Location(ctx, sel, &v)
-}
-
-func (ec *executionContext) marshalNLocation2ᚕgithubᚗcomᚋcccacᚋOpenWarnᚑProxyᚋgraphᚋmodelᚐLocationᚄ(ctx context.Context, sel ast.SelectionSet, v []model.Location) graphql.Marshaler {
+func (ec *executionContext) marshalNGeocode2ᚕgithubᚗcomᚋcccacᚋOpenWarnᚑProxyᚋgraphᚋmodelᚐGeocodeᚄ(ctx context.Context, sel ast.SelectionSet, v []model.Geocode) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
 	isLen1 := len(v) == 1
@@ -3149,7 +3555,117 @@ func (ec *executionContext) marshalNLocation2ᚕgithubᚗcomᚋcccacᚋOpenWarn�
 			if !isLen1 {
 				defer wg.Done()
 			}
-			ret[i] = ec.marshalNLocation2githubᚗcomᚋcccacᚋOpenWarnᚑProxyᚋgraphᚋmodelᚐLocation(ctx, sel, v[i])
+			ret[i] = ec.marshalNGeocode2githubᚗcomᚋcccacᚋOpenWarnᚑProxyᚋgraphᚋmodelᚐGeocode(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+	return ret
+}
+
+func (ec *executionContext) unmarshalNID2string(ctx context.Context, v interface{}) (string, error) {
+	return graphql.UnmarshalID(v)
+}
+
+func (ec *executionContext) marshalNID2string(ctx context.Context, sel ast.SelectionSet, v string) graphql.Marshaler {
+	res := graphql.MarshalID(v)
+	if res == graphql.Null {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+	}
+	return res
+}
+
+func (ec *executionContext) marshalNLineSegment2githubᚗcomᚋcccacᚋOpenWarnᚑProxyᚋgraphᚋmodelᚐLineSegment(ctx context.Context, sel ast.SelectionSet, v model.LineSegment) graphql.Marshaler {
+	return ec._LineSegment(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNLineSegment2ᚕgithubᚗcomᚋcccacᚋOpenWarnᚑProxyᚋgraphᚋmodelᚐLineSegmentᚄ(ctx context.Context, sel ast.SelectionSet, v []model.LineSegment) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNLineSegment2githubᚗcomᚋcccacᚋOpenWarnᚑProxyᚋgraphᚋmodelᚐLineSegment(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+	return ret
+}
+
+func (ec *executionContext) marshalNLocation2githubᚗcomᚋcccacᚋOpenWarnᚑProxyᚋgraphᚋmodelᚐLocation(ctx context.Context, sel ast.SelectionSet, v model.Location) graphql.Marshaler {
+	return ec._Location(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNLocation2ᚖgithubᚗcomᚋcccacᚋOpenWarnᚑProxyᚋgraphᚋmodelᚐLocation(ctx context.Context, sel ast.SelectionSet, v *model.Location) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	return ec._Location(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNPolygon2githubᚗcomᚋcccacᚋOpenWarnᚑProxyᚋgraphᚋmodelᚐPolygon(ctx context.Context, sel ast.SelectionSet, v model.Polygon) graphql.Marshaler {
+	return ec._Polygon(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNPolygon2ᚕgithubᚗcomᚋcccacᚋOpenWarnᚑProxyᚋgraphᚋmodelᚐPolygonᚄ(ctx context.Context, sel ast.SelectionSet, v []model.Polygon) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNPolygon2githubᚗcomᚋcccacᚋOpenWarnᚑProxyᚋgraphᚋmodelᚐPolygon(ctx, sel, v[i])
 		}
 		if isLen1 {
 			f(i)

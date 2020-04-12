@@ -39,7 +39,19 @@ type AlertPayload struct {
 }
 
 type Area struct {
-	Points []Location `json:"points"`
+	Polygons    []Polygon `json:"polygons"`
+	Geocode     []Geocode `json:"geocode"`
+	Description string    `json:"description"`
+}
+
+type Geocode struct {
+	Name  string `json:"name"`
+	Value string `json:"value"`
+}
+
+type LineSegment struct {
+	P1 *Location `json:"p1"`
+	P2 *Location `json:"p2"`
 }
 
 type Location struct {
@@ -50,6 +62,10 @@ type Location struct {
 type LocationInput struct {
 	Latitude  float64 `json:"latitude"`
 	Longitude float64 `json:"longitude"`
+}
+
+type Polygon struct {
+	Segments []LineSegment `json:"segments"`
 }
 
 type Scope string

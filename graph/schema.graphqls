@@ -8,8 +8,24 @@ type Location {
 	longitude: Float!
 }
 
+type Geocode {
+	name: String!
+	value: String!
+}
+
+type LineSegment {
+	p1: Location!
+	p2: Location!
+}
+
+type Polygon {
+	segments: [LineSegment!]!
+}
+
 type Area {
-	points: [Location!]!
+	polygons: [Polygon!]!
+	geocode: [Geocode!]!
+	description: String!
 }
 
 scalar Time # Comes from gqlgen
