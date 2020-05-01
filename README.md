@@ -24,7 +24,7 @@ the following URLs:
 
 To run the proxy, simply run the binary like this:
 
-    ./OpenWarn-Proxy -updateDelay=1m30s -socketPath=/coords -sockerAddr=:8080
+    ./OpenWarn-Proxy -updateDelay=1m30s -socketPath=/coords -socketAddr=:8080
 
 This will poll for updates ever one-and-a-half minutes and provide a websocket
 at path "/coords" on port 8080. To connect from a locally running browser, open
