@@ -1,0 +1,84 @@
+input LocationInput {
+	latitude: Float!
+	longitude: Float!
+}
+
+type Location {
+	latitude: Float!
+	longitude: Float!
+}
+
+type Geocode {
+	name: String!
+	value: String!
+}
+
+type LineSegment {
+	p1: Location!
+	p2: Location!
+}
+
+type Polygon {
+	segments: [LineSegment!]!
+}
+
+type Area {
+	polygons: [Polygon!]!
+	geocode: [Geocode!]!
+	description: String!
+}
+
+scalar Time # Comes from gqlgen
+
+enum Status {
+	Actual
+}
+
+enum Type {
+	Cancel
+	Alert
+	Update
+}
+
+enum Scope {
+	Public
+}
+
+type AlertMetadata {
+	# Metadata
+	id: ID!
+	sender: String!
+	sentAt: Time!
+	status: Status!
+	type: Type!
+	scope: Scope!
+}
+
+type AlertPayload {
+	# Payload, may be more than one
+	headline: String!
+	message: String!
+	instructions: String # TODO: Unify with suggested response?
+	contact: String
+	url: String # TODO: Unify with contact?
+	area: [Area!]!
+	expires: Time! # TODO: Move to message metadata?
+
+	category: String!  # TODO: Should be an enum
+	response: String!  # TODO: Should be an enum, suggested response to event: Monitor/Prepare
+	urgency: String!   # TODO: Should be an enum: Immediate/...
+	severity: String!  # TODO: Should be an enum: Minor/...
+	certainty: String! # TODO: Should be an enum: How reliable is this information?
+
+	# TODO:
+	# - there is also "parameter", which seems to be a KV map of additional metadata items
+}
+
+type Alert {
+	metadata: AlertMetadata!
+	payload: [AlertPayload!]!
+}
+
+type Query {
+	activeAlerts(location: LocationInput): [Alert!]!
+}

@@ -1,4 +1,4 @@
-package main
+package proxy
 
 import (
 	"errors"
@@ -19,8 +19,9 @@ func (e InvalidCoordinateError) Error() string {
 	return fmt.Sprintf("Invalid coordinate string '%s', splits into %#v", e.s, e.v)
 }
 
-type Coordinate struct {
-	Latitude, Longitude float64
+type Location struct {
+	Latitude  float64 `json:"latitude"`
+	Longitude float64 `json:"longitude"`
 }
 
 // NewCoordinateFromString returns a Coordinate extracted from s. s has the following layout:
@@ -28,8 +29,8 @@ type Coordinate struct {
 //    s := "7.8,50.1" // Longitude, Latitude
 //
 // This layout is somewhat unusual, since usually the latitude comes first.
-func NewCoordinateFromString(s string) (Coordinate, error) {
-	var c Coordinate
+func NewCoordinateFromString(s string) (Location, error) {
+	var c Location
 	v := strings.Split(strings.TrimSpace(s), ",")
 	if len(v) != 2 {
 		return c, InvalidCoordinateError{s, v}
@@ -48,24 +49,24 @@ func NewCoordinateFromString(s string) (Coordinate, error) {
 	return c, nil
 }
 
-func (c Coordinate) String() string {
+func (c Location) String() string {
 	return fmt.Sprintf("[Lat:% 3.3f, Lon:% 3.3f]", c.Latitude, c.Longitude)
 }
 
 type LineSegment struct {
-	p1, p2 Coordinate
+	P1, P2 Location
 }
 
 func (l LineSegment) String() string {
-	return fmt.Sprintf("[%s->%s]", l.p1, l.p2)
+	return fmt.Sprintf("[%s->%s]", l.P1, l.P2)
 }
 
 type Area struct {
 	Segments []LineSegment
 }
 
-// NewAreaFromString loads coordinates from the string representation and returns an area. The returned area may not be a single
-// polygon and it may not be convex.
+// NewAreaFromString loads coordinates from the string representation and returns an area. The returned area may not
+// be a single polygon and it may not be convex.
 func NewAreaFromString(coords string) (Area, error) {
 	var a Area
 
@@ -97,7 +98,7 @@ func NewAreaFromString(coords string) (Area, error) {
 		if err != nil {
 			return a, err
 		}
-		seg := LineSegment{p1: p1, p2: p2}
+		seg := LineSegment{P1: p1, P2: p2}
 		a.Segments = append(a.Segments, seg)
 		lastCoord = chunk
 	}
@@ -106,7 +107,7 @@ func NewAreaFromString(coords string) (Area, error) {
 }
 
 // Contains returns true if c is inside the polygon described by a
-func (a Area) Contains(c Coordinate) bool {
+func (a Area) Contains(c Location) bool {
 	// Cast a ray from c to the right. Count crossings with line segments of a. If the number of crossings is even, c is outside
 	// of a.
 
@@ -115,8 +116,8 @@ func (a Area) Contains(c Coordinate) bool {
 	for _, seg := range a.Segments {
 		// Check if a is to the left of the rightmost part of seg and between the end points
 		// Check latitudes (Y coords)
-		minLat := math.Min(seg.p1.Latitude, seg.p2.Latitude)
-		maxLat := math.Max(seg.p1.Latitude, seg.p2.Latitude)
+		minLat := math.Min(seg.P1.Latitude, seg.P2.Latitude)
+		maxLat := math.Max(seg.P1.Latitude, seg.P2.Latitude)
 
 		if c.Latitude < minLat || c.Latitude > maxLat {
 			// Above or below line segment
@@ -124,9 +125,9 @@ func (a Area) Contains(c Coordinate) bool {
 		}
 
 		// Calculate x coordinate of the intersection of a line through seg.p1 and sec.p2 (l1) and a line to the right through c (l2)
-		if seg.p1.Longitude == seg.p2.Longitude {
+		if seg.P1.Longitude == seg.P2.Longitude {
 			// Deal with seg.p1 and seg.p2 on one vertical line
-			if c.Longitude <= seg.p1.Longitude {
+			if c.Longitude <= seg.P1.Longitude {
 				intersections++
 			}
 			continue
@@ -134,11 +135,11 @@ func (a Area) Contains(c Coordinate) bool {
 
 		// Get slope of l1
 		// Determine which of p1, p2 is leftmost
-		leftP := seg.p1
-		rightP := seg.p2
+		leftP := seg.P1
+		rightP := seg.P2
 		if leftP.Longitude > rightP.Longitude {
-			leftP = seg.p2
-			rightP = seg.p1
+			leftP = seg.P2
+			rightP = seg.P1
 		}
 		// Calculate slope
 		slope := (rightP.Latitude - leftP.Latitude) / (rightP.Longitude - leftP.Longitude)

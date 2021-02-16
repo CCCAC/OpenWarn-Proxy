@@ -1,4 +1,4 @@
-package main
+package proxy
 
 import (
 	"fmt"
@@ -8,15 +8,15 @@ import (
 type URL string
 type MessageID string
 
-type geocodeDescription struct {
+type Geocode struct {
 	ValueName string `json:"valueName"`
 	Value     string `json:"value"`
 }
 
-type areaDescription struct {
-	Description string               `json:"areaDesc"`
-	Polygon     []string             `json:"polygon"` // TODO: Add proper extraction
-	Geocode     []geocodeDescription `json:"geocode"`
+type AreaDescription struct {
+	Description string    `json:"areaDesc"`
+	Polygon     []string  `json:"polygon"` // TODO: Add proper extraction
+	Geocode     []Geocode `json:"geocode"`
 }
 
 type infoItem struct {
@@ -32,7 +32,7 @@ type infoItem struct {
 	Instructions       string            `json:"instruction"`
 	ContactInformation string            `json:"contact"`
 	URL                URL               `json:"web"`
-	Area               []areaDescription `json:"area"` // List of affected areas
+	Area               []AreaDescription `json:"area"` // List of affected areas
 	Expires            time.Time         `json:"expires"`
 
 	// TODO: parameter: list of key-value metadata items
@@ -43,7 +43,7 @@ func (i infoItem) String() string {
 		i.Category, i.Event, i.ResponseType, i.Urgency, i.Severity, i.Headline, i.Description, i.Instructions, i.ContactInformation, i.URL, i.Expires)
 }
 
-type alertMessage struct {
+type Alert struct {
 	Identifier MessageID `json:"identifier"`
 	Sender     string    `json:"sender"`
 	Sent       time.Time `json:"sent"`    // Timestamp
@@ -55,7 +55,7 @@ type alertMessage struct {
 	Info []infoItem `json:"info"`
 }
 
-func (m alertMessage) String() string {
+func (m Alert) String() string {
 	return fmt.Sprintf("[Identifier: %s, Sender: %s, Sent: %s, Status: %s, MsgType: %s, Scope: %s, Info: %s]",
 		m.Identifier, m.Sender, m.Sent, m.Status, m.MsgType, m.Scope, m.Info)
 }
